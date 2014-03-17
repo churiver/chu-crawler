@@ -27,7 +27,7 @@ You are all set!
 
 Future Features
 ===================
-1. Customized configuration file.  
+1. Customized configuration file.  DONE!
 2. Multiple crawlers via multiple threads or epoll.  
 3. Handle case of URL redirecting.  
 4. Follow rules in robot.txt.  

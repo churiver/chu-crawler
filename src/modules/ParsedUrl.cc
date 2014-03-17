@@ -1,6 +1,5 @@
 /**
 * Coopyright (c) 2013-2014
-* @version 0.8.0
 * @author Li Yu
 * @email churiver86 at gmail.com
 * @date 03/04/2014
@@ -21,9 +20,10 @@ namespace http {
 
 
 ParsedUrl::ParsedUrl (const char * url)
-    : port(80), state(OK)
+    : port(80), state(OK), scheme(nullptr), 
+        host(nullptr), path(nullptr), ip(nullptr)
 {
-    if (url == NULL) {
+    if (url == nullptr) {
         state = ERR_URL_EMPTY;
         return;
     }
@@ -31,7 +31,7 @@ ParsedUrl::ParsedUrl (const char * url)
     const char * url_ptr = url;
     
     const char * scheme_end = strstr(url_ptr, "://");
-    if (scheme_end == NULL) {
+    if (scheme_end == nullptr) {
         state = ERR_URL_SCHEME;
         return;
     }
@@ -39,7 +39,7 @@ ParsedUrl::ParsedUrl (const char * url)
     scheme = strndup(url_ptr, scheme_end - url_ptr - 3);
     
     const char * port_start = strchr(scheme_end, ':');
-    if (port_start != NULL)
+    if (port_start != nullptr)
         port = atoi(port_start + 1);
     if (port == 0) {
         state = ERR_URL_PORT;
@@ -47,7 +47,7 @@ ParsedUrl::ParsedUrl (const char * url)
     }
 
     const char * path_start = strchr(scheme_end, '/');
-    if (path_start == NULL) {
+    if (path_start == nullptr) {
         host = strdup(scheme_end);
         path = strdup("/");
     }
@@ -57,7 +57,8 @@ ParsedUrl::ParsedUrl (const char * url)
     }
 
     struct hostent * hptr;
-    if ((hptr = gethostbyname(host)) == NULL) {
+    if (((hptr = gethostbyname(host)) == nullptr) ||
+         (hptr->h_addr_list[0] == nullptr)) {
         state = ERR_URL_IP;
         return;
     }
@@ -100,9 +101,9 @@ ParsedUrl::~ParsedUrl ( )
 void ParsedUrl::output ( )
 {
     if (state != OK)
-        printf("ParsedUrl invalid. err_state %d\n", state);
+        fprintf(stderr, "ParsedUrl invalid. err_state %d\n", state);
     else
-        printf("\tParsedUrl OK.\nscheme: %s\nhost: %s\n"
+        fprintf(stderr, "\tParsedUrl OK.\nscheme: %s\nhost: %s\n"
                 "port: %d\npath: %s\nip: %x\n\n",
                 scheme, host, port, path, ip);
 }

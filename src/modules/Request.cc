@@ -1,6 +1,5 @@
 /**
 * Coopyright (c) 2013-2014
-* @version 0.8.0
 * @author Li Yu
 * @email churiver86 at gmail.com
 * @date 03/04/2014
@@ -28,9 +27,12 @@ const std::string Request::HEADER_ACCP = "Accept";
 
 
 Request::Request (const std::string & url, const std::string & req_method )
+    : parsed_url(nullptr), resp(nullptr)
 {    
     raw_url = url;
     parsed_url = new ParsedUrl(url.c_str());
+    if (parsed_url->state != http::OK)
+        return;
     method = req_method;
     header_map[HEADER_HOST] = parsed_url->host;
 }
@@ -58,15 +60,13 @@ void Request::setReqMessage(char * req_msg)
              3, 
              "%s", 
              "\r\n");
-    
-    //printf("req_msg: \n%s\n", req_msg);
 }
 
 
 const State Request::execute (const bool is_nonblock )
 {
     if (parsed_url->state != OK) {
-        printf("parse url failed. err code %d\n", parsed_url->state);
+        fprintf(stderr, "parse url failed. err code %d\n", parsed_url->state);
         return parsed_url->state;
     }
 
@@ -82,11 +82,11 @@ const State Request::execute (const bool is_nonblock )
     sock::sendRequest(sockfd, req_msg);
 
     char recv_msg[MAX_RESP_LEN] = {0};
-    if (sock::recvResponse(sockfd, recv_msg) == 0)
+    if (sock::recvResponse(sockfd, recv_msg) <= 0)
         return ERR_REQ_RESPONSE;
 
     resp = new Response(recv_msg);
-
+    fprintf(stderr, "Req:\n%s\n", req_msg);
     return OK;
 }
 

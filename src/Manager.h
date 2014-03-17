@@ -1,6 +1,5 @@
 /**
 * Copyright (c) 2013-2014
-* @version 0.8.0
 * @author Li Yu
 * @email churiver at gmail.com
 * @date 03/04/2014
@@ -11,28 +10,31 @@
 #define MANAGER_H
 
 #include <string>
-#include <queue>
 #include <vector>
+#include <map>
 
 #include "Worker.h"
 
-class Manager
-{
-public:
 
+void init ( );
 
-    void loadConfig (std::string & config_name );
+void * assign (void * );
 
-    void allocateJob ( );
+const std::string CONFIG = "crawl.config";
+const std::string CONF_SEED = "seed";
+const std::string CONF_DOWNLOAD_PATH = "download-path";
+const std::string CONF_MAX_WORKER_COUNT = "max-worker-count";
+const std::string CONF_MAX_URL_COUNT = "max-url-count";
 
-private:
+const std::string DEFAULT_DOWNLOAD_PATH = "download";
+const unsigned int DEFAULT_MAX_WORKER_COUNT = 1;
+const unsigned int DEFAULT_MAX_URL_COUNT = 100;
 
+std::map<std::string, std::string> conf_map;
 
-//    std::queue<std:string> seed_url_pool;
-    int max_worker_num;
-    int max_link_per_worker;
-//    std::vector<Worker> worker_pool;
-
-};
+std::vector<std::string> seed_vector;
+std::string download_path;
+unsigned int max_worker_count;
+unsigned int worker_count;
 
 #endif // MANAGER_H

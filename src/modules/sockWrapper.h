@@ -1,6 +1,5 @@
 /**
 * Coopyright (c) 2013-2014
-* @version 0.8.0
 * @author Li Yu
 * @email churiver86 at gmail.com
 * @date 03/04/2014
@@ -13,6 +12,7 @@
 #include <string>
 
 #define MAX_REQ_LEN 1024
+// html file could be large than 1Mb.
 #define MAX_RESP_LEN 1024*1024
 
 namespace sock {

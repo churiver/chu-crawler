@@ -1,6 +1,5 @@
 /**
 * Coopyright (c) 2013-2014
-* @version 0.8.0
 * @author Li Yu
 * @email churiver86 at gmail.com
 * @date 03/04/2014
@@ -34,8 +33,6 @@ const std::string Response::CONTENT_TYPE_HTML = "text/html";
 
 Response::Response(char * recv_msg)
 {
-    // printf("-- Response constructor called\n");
-
     char * status_end = strstr(recv_msg, "\r\n");
     if ((setStatusCode(recv_msg, status_end - recv_msg) < 1) ||
         (*(status_end + 3) == '\0'))  {
@@ -56,10 +53,7 @@ Response::Response(char * recv_msg)
 }
 
 
- Response::~Response ( )
-{
-    // printf("-- Response destructor called\n");
-}
+ Response::~Response ( ) { }
 
 
 int Response::setStatusCode (char * status_line, int len )
@@ -91,13 +85,13 @@ void Response::setHeaders (char * header_start, int len )
 
 void Response::output (bool print_body )
 {
-    printf("\t\n-- Output Response\n\tStatus Code: %d\n", status_code);
+    fprintf(stderr, "\t\n-- Output Response\n\tStatus Code: %d\n", status_code);
     std::map<std::string, std::string>::iterator it;
     for (it = header_map.begin(); it != header_map.end(); it++)
-        printf("\t%s: %s\n", it->first.c_str(), it->second.c_str());
+        fprintf(stderr, "\t%s: %s\n", it->first.c_str(), it->second.c_str());
     
     if (print_body)
-        printf("\tBody: %s\n", body.c_str());
+        fprintf(stderr, "\tBody: %s\n", body.c_str());
 }
 
 
@@ -108,12 +102,12 @@ int Response::downloadFile (const std::string & url, const std::string & path)
     if ((path[0] != '/') && (getcwd(cwd, 256) == NULL))
         return 1;
     char * dir_path = strcat(strcat(cwd, "/"), path.c_str());
-    printf("downloading file to %s\n", dir_path);
+    fprintf(stdout, "downloading %s ..\n", url.c_str());
 
     struct stat st = {0};
     if (stat(dir_path, &st) == -1) {
         mkdir(dir_path, 0700);
-        printf("dir %s does not exist, creating\n", dir_path);
+        fprintf(stdout, "dir %s does not exist, creating\n", dir_path);
     }
 
     int len = strlen(dir_path);
@@ -128,7 +122,7 @@ int Response::downloadFile (const std::string & url, const std::string & path)
     ofs_file.open(strcat(dir_path, file_name), std::ofstream::out);
     ofs_file << body;
     ofs_file.close();
-    printf("downloaded file for url %s\n", url.c_str());
+    fprintf(stdout, "downloaded to %s\n", dir_path);
 
     delete [] file_name;
     return 0;

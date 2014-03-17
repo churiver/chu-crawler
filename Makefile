@@ -11,7 +11,7 @@ TARGET = chu-crawl
 $(TARGET):
 	cd ./src/modules && make
 	cd ./src && make
-	g++ -g -std=c++0x ./src/modules/*.o ./src/*.o -o $(TARGET)
+	g++ -g -lpthread -std=c++0x ./src/modules/*.o ./src/*.o -o $(TARGET)
 
 .PHONY: clean
 clean:

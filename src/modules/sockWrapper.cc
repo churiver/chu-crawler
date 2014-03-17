@@ -1,6 +1,5 @@
 /**
 * Coopyright (c) 2013-2014
-* @version 0.8.0
 * @author Li Yu
 * @email churiver86 at gmail.com
 * @date 03/04/2014
@@ -79,15 +78,20 @@ int recvResponse (int sockfd, char * recv_msg )
 		n = read(sockfd, recv_msg + recv_len, 4096);
 		if (n > 0) {
 			recv_len += n;
+            if (recv_len + 4096 >= MAX_RESP_LEN) {
+                fprintf(stderr, "recv exceeds MAX_RESP_LEN %d\n", MAX_RESP_LEN);
+                close(sockfd);
+                return -1;
+            }
 		}
 		else if (n < 0) {
-/*			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            /*if (errno == EAGAIN || errno == EWOULDBLOCK) {
 				printf("recv_response. errno = EAGAIN#\n");
 				usleep(200000);
 				continue;        // For non_block
 			}
 			else*/ if (errno == EINTR) {
-				printf("recv interruputed#\n");
+				fprintf(stderr, "recv interruputed#\n");
 				close(sockfd);
 				return -1;
 			}
