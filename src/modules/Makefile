@@ -1,8 +1,7 @@
 # Copyright (c) 2013-2014
-# Version 0.8.0
 # Author Li Yu
 # Email churiver at gmail.com
-# Date 03/04/2014
+# Create-Date 03/04/2014
 # Description modules Makefile
 
 

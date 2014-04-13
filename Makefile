@@ -1,20 +1,21 @@
 # Copyright (c) 2013-2014
-# Version 0.8.0
 # Author Li Yu
 # Email churiver at gmail.com
-# Date 03/04/2014
+# Create-Date 03/04/2014
 # Description root Makefile
 
 
 TARGET = chu-crawl
 
 $(TARGET):
+	cd ./src/lib && make
 	cd ./src/modules && make
 	cd ./src && make
-	g++ -g -lpthread -std=c++0x ./src/modules/*.o ./src/*.o -o $(TARGET)
+	g++ -g -lpthread -std=c++0x ./src/lib/*.o ./src/modules/*.o ./src/*.o -o $(TARGET)
 
 .PHONY: clean
 clean:
 	cd ./src && make clean
 	cd ./src/modules && make clean
+	cd ./src/lib && make clean
 	rm $(TARGET)
