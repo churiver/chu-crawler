@@ -2,46 +2,46 @@
 * Coopyright (c) 2013-2014
 * @author Li Yu
 * @email churiver86 at gmail.com
-* @date 03/04/2014
+* @create date 03/04/2014
 * @description Parsed URL
 */
 
-#include "ParsedUrl.h"
+#include "httpUrl.h"
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+
 #include <netdb.h>
 #include <arpa/inet.h>
-
-#include "util.h"
 
 namespace http {
 
 
-ParsedUrl::ParsedUrl (const char * url)
-    : port(80), state(OK), scheme(nullptr), 
+Url::Url (const char * url, bool host_path_only )
+    : port(80), state(OK), scheme(nullptr),
         host(nullptr), path(nullptr), ip(nullptr)
 {
     if (url == nullptr) {
         state = ERR_URL_EMPTY;
         return;
     }
-
+    
+    urlstr = std::string(url);
     const char * url_ptr = url;
     
     const char * scheme_end = strstr(url_ptr, "://");
-    if (scheme_end == nullptr) {
-        state = ERR_URL_SCHEME;
-        return;
+    if (scheme_end != nullptr) {
+        scheme_end += 3; // skip "://"
+        scheme = strndup(url_ptr, scheme_end - url_ptr - 3);
     }
-    scheme_end += 3; // skip "://"
-    scheme = strndup(url_ptr, scheme_end - url_ptr - 3);
+    else {
+        scheme_end = url_ptr;
+    }
     
     const char * port_start = strchr(scheme_end, ':');
-    if (port_start != nullptr)
-        port = atoi(port_start + 1);
-    if (port == 0) {
+    if ((port_start != nullptr) && 
+            (0 == (port = atoi(port_start + 1)))) {
         state = ERR_URL_PORT;
         return;
     }
@@ -56,6 +56,10 @@ ParsedUrl::ParsedUrl (const char * url)
         path = strdup(path_start);
     }
 
+    if (true == host_path_only) {
+        return;
+    }
+
     struct hostent * hptr;
     if (((hptr = gethostbyname(host)) == nullptr) ||
          (hptr->h_addr_list[0] == nullptr)) {
@@ -66,7 +70,7 @@ ParsedUrl::ParsedUrl (const char * url)
 }
 
 
-ParsedUrl::ParsedUrl (const ParsedUrl & rhs )
+Url::Url (const Url & rhs )
     : port(rhs.port) 
 {
     scheme = strdup(rhs.scheme);
@@ -76,7 +80,7 @@ ParsedUrl::ParsedUrl (const ParsedUrl & rhs )
 }
 
 
-ParsedUrl & ParsedUrl::operator= (const ParsedUrl & rhs )
+Url & Url::operator= (const Url & rhs )
 {
     if (this == &rhs)
         return *this;
@@ -89,7 +93,7 @@ ParsedUrl & ParsedUrl::operator= (const ParsedUrl & rhs )
 }
 
 
-ParsedUrl::~ParsedUrl ( )
+Url::~Url ( )
 {
     delete[] scheme;
     delete[] host;
@@ -98,22 +102,58 @@ ParsedUrl::~ParsedUrl ( )
 }
 
 
-void ParsedUrl::output ( )
+State        Url::getState ( ) const
 {
-    if (state != OK)
-        fprintf(stderr, "ParsedUrl invalid. err_state %d\n", state);
-    else
-        fprintf(stderr, "\tParsedUrl OK.\nscheme: %s\nhost: %s\n"
-                "port: %d\npath: %s\nip: %x\n\n",
-                scheme, host, port, path, ip);
+    return state;
+}
+
+
+int          Url::getPort ( ) const
+{
+    return port;
+}
+
+
+const std::string & Url::getStr ( ) const
+{
+    return urlstr;
+}
+
+
+const char * Url::getIp ( ) const
+{
+    return ip;
+}
+
+
+const char * Url::getHost ( ) const
+{
+    return host;
+}
+
+
+const char * Url::getPath ( ) const
+{
+    return path;
 }
 
 };
 
+/*
+void Url::output ( )
+{
+    if (state != OK)
+        fprintf(stderr, "Url invalid. err_state %d\n", state);
+    else
+        fprintf(stderr, "\tUrl OK.\nscheme: %s\nhost: %s\n"
+                "port: %d\npath: %s\nip: %x\n\n",
+                scheme, host, port, path, ip);
+}
+*/
 
 /*int main() {
     std::string s("http://www.baidu.com");
-    http::ParsedUrl url(s);
+    http::Url url(s);
     url.output();
 }
 */

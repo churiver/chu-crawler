@@ -1,8 +1,8 @@
 # Copyright (c) 2013-2014
-# Author Li Yu
-# Email churiver at gmail.com
-# Create-Date 04/12/2014
-# Description lib Makefile
+# author Li Yu
+# email churiver at gmail.com
+# create-Date 04/12/2014
+# description lib Makefile
 
 
 #compiler information

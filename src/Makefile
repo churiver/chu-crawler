@@ -1,8 +1,8 @@
 # Copyright (c) 2013-2014
-# Author Li Yu
-# Email churiver at gmail.com
-# Create-Date 03/04/2014
-# Description src Makefile
+# author Li Yu
+# email churiver at gmail.com
+# create-Date 03/04/2014
+# description src Makefile
 
 
 #compiler information
