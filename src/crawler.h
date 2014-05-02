@@ -31,7 +31,8 @@ std::string g_download_dir = DEFAULT_DOWNLOAD_DIR;
 int g_target_dnldcount = DEFAULT_DNLDCOUNT;
 int g_current_dnldcount = 0;
 
-thread::ThreadPool g_threadpool(8, 32); // TODO from conf
+thread::ThreadPool g_urltask_pool(6, 32); // TODO from conf
+thread::ThreadPool g_responsetask_pool(6, 64); // TODO from conf
 std::vector<std::string> g_seeds;
 
 int init( );

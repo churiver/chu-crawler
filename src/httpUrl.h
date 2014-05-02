@@ -48,6 +48,7 @@ private:
     char * host;
     char * path;
 };
-}; // end of package namespace
+
+};
 
 #endif

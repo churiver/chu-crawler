@@ -36,7 +36,7 @@ void Task::run ( )
 
 
 ThreadPool::ThreadPool (size_t pool_size, size_t que_capacity )
-    : _task_queue(que_capacity), _shutdown(false)
+    : _task_queue(que_capacity), _is_shutdown(false)
 {
     int thread_count = 0;
     pthread_t tid;
@@ -63,7 +63,7 @@ ThreadPool::~ThreadPool ( )
 
 int ThreadPool::destroy ( )
 {
-    _shutdown = true;
+    _is_shutdown = true;
 
     std::vector<pthread_t>::iterator it = _thread_list.begin();
     for (it; it != _thread_list.end(); it++) {
@@ -85,7 +85,7 @@ bool ThreadPool::addTask (Task * task )
 void * ThreadPool::executeThread (void * arg )
 {
     ThreadPool * self = (ThreadPool *)arg;
-    while (self->_shutdown != true) {
+    while (self->_is_shutdown != true) {
         // block at take() if queue is empty
         Task * task = self->_task_queue.take();
         //fprintf(stderr, "ThreadP. pthread %d running a task\n", pthread_self());

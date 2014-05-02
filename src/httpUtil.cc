@@ -16,11 +16,12 @@
 namespace http {
 
 
-const std::string CONTENT_TYPE = "Content-Type";
-const std::string CONTENT_ENCODING = "Content-Encoding";
-const std::string CONTENT_TYPE_HTML = "text/html";
+const std::string CONTENT_TYPE("Content-Type");
+const std::string CONTENT_ENCODING("Content-Encoding");
+const std::string CONTENT_TYPE_HTML("text/html");
+const std::string ALLOWED_FORMAT(".html.htm.php.do.jsp.asp.apsx");
 
-std::string allowed_format(".html.htm.php.do.jsp.asp.apsx");
+#define MAX_FILENAME_LEN 64
 
 
 char * setRequest (const char * host, const char * path )
@@ -71,7 +72,7 @@ int validateUrl (const std::string & urlstr )
     std::string format = urlstr.substr(last_dot_pos);
     std::transform(format.begin(), format.end(), format.begin(), ::tolower);
 
-    if (allowed_format.find(format) != std::string::npos) {
+    if (ALLOWED_FORMAT.find(format) != std::string::npos) {
         return 0;
     }
     else {
@@ -158,6 +159,35 @@ int resolveUrl (std::string & urlstr, const std::string & host, const std::strin
    }
 
    return 0;
+}
+
+
+const std::string urlToFileName (std::string urlstr )
+{
+    if (urlstr.size() > MAX_FILENAME_LEN) {
+        urlstr = urlstr.substr(0, MAX_FILENAME_LEN);
+    }
+
+    std::size_t protocol = urlstr.find("://");
+    std::size_t last_slash = urlstr.find_last_of('/');
+    std::size_t last_dot = urlstr.find_last_of('.');
+    
+    if ((std::string::npos == last_slash) || // www.abc.com
+        (protocol == (last_slash - 2)) ||    // http://www.abc.com
+        (last_dot < last_slash)) {           // http://www.abc.com
+        urlstr += ".html";
+    }
+
+    std::string::iterator it = urlstr.begin();
+    for (it; it < urlstr.end(); it++) {
+        if (*it == '/' || *it == '\\' || *it == '?' || 
+            *it == ':' || *it == '*' || *it == '|' ||
+            *it == '<' || *it == '>' || *it == '"' || 
+                *it == '\'') {
+            *it = '_';
+        }        
+    }
+    return urlstr;
 }
 
 };

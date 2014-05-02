@@ -1,8 +1,19 @@
+Version 0.9.6 - May 1st, 2014
+==============================
+Update
+- Provide a new macro LOGnPRINT to print log on console while writing to log file.
+
+Fix
+- Initially there is only one thread pool running both tasks of handleUrl/handleResponse. In case all threads are in handleResponse and adding handleUrl task to pool, the task queue in pool will be full and all threads blocking in adding task since no thread is running handleUrl which will take task from queue.
+  Now put the tasks of handling url and response in separate thread pools to avoid block.
+- Logger was set to throw when the Level is ERROR, which leads to unhandling exit of crawl and threadpool object.
+  Now log of ERROR level will not cause process exit.
+
 
 Version 0.9.5 - April 29th, 2014
 ==============================
 Update
-- Adopt epoll and half-sync/half-async multi-threads pattern.
+- Refactor code with epoll and half-sync/half-async multi-threads pattern.
 - Provide logger as lib.
 
 

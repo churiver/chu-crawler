@@ -33,6 +33,8 @@ int normalizeUrl (std::string & );
 
 int resolveUrl (std::string &, const std::string &, const std::string & );
 
+const std::string urlToFileName (std::string );
+
 }; // end of package namespace
 
 #endif // UTIL_H

@@ -30,11 +30,9 @@ int getEpollfd ( )
     if (0 == epollfd) {
         if (-1 == (epollfd = epoll_create(MAX_EPOLL_EVENTS))) {
             LOG(ERROR) << "epoll_create() failed. errno " << errno;
-            //fprintf(stderr, "epoll_create() failed. errno %d\n", errno);
             exit(EXIT_FAILURE);
         }
         LOG(INFO) << "epoll_create() succeed. fd = " << epollfd;
-        //fprintf(stderr, "epoll fd = %d\n", epollfd); // debug
     }
 
     return epollfd;
@@ -64,23 +62,19 @@ int connectTo (const char * ip, int port )
 	int sockfd;
 	if (-1 == (sockfd = socket(AF_INET, SOCK_STREAM, 0))) {
         LOG(ERROR) << "socket error. errno " << errno;
-		//fprintf(stderr, "    HTTP. socket error, errno: %d\n", errno);
 		return -1;
 	}
 
 	if (-1 == connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) {
         LOG(ERROR) << "connect error. errno " << errno;
-		//fprintf(stderr, "    HTTP. connect error, errno: %d\n", errno);
 		return -1;
 	}
 
 	char ipstr[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, ip, ipstr, sizeof(ipstr));
     LOG(DEBUG3) << "connection to " << ipstr << " succeed. sockfd " << sockfd;
-	//fprintf(stderr, "    HTTP. Connection to %s:%d succeed. sockfd %d\n",
-	//	    ipstr, ntohs(servaddr.sin_port), sockfd);
     
-    //setNonblock(sockfd);
+    setNonblock(sockfd);
 
 	return sockfd;	
 }
@@ -102,7 +96,6 @@ int send (struct FdInfo * fdinfo )
     while (rest > 0) {
         n = write(sockfd, writebuff + offset, rest);
         LOG(DEBUG1) << "write to fd " << sockfd << " " << n << " bytes";
-        //fprintf(stderr, "    HTTP. write to fd %d %d bytes.\n", sockfd, n);
         if (n >= 0) {
             offset += n;
             rest -= n;
@@ -113,8 +106,6 @@ int send (struct FdInfo * fdinfo )
         }
         else {
             LOG(ERROR) << "write to fd " << sockfd << " failed. errno " << errno;
-            //fprintf(stderr, "    HTTP. write to fd %d failed. errno %d\n", 
-            //        sockfd, errno);
             return -1;
         }
     }
@@ -136,7 +127,6 @@ int recv (struct FdInfo * fdinfo )
     }
 
     LOG(DEBUG1) << "read fd " << fdinfo->fd;
-    //fprintf(stderr, "    HTTP. read fd %d\n", fdinfo->fd);
     int n = -1;
     int offset = fdinfo->buff_offset;
 
@@ -145,7 +135,6 @@ int recv (struct FdInfo * fdinfo )
             offset += n;
             if (offset + RECV_SIZE >= MAX_RECV_SIZE) {
                 LOG(DEBUG1) << "recv exceeds max allowed size" << MAX_RECV_SIZE;
-                //fprintf(stderr, "    HTTP. recv exceeds max length %d\n", MAX_RECV_SIZE);
                 return -1;
             }
             else if (offset + RECV_SIZE >= fdinfo->buff_capacity) {
@@ -160,14 +149,11 @@ int recv (struct FdInfo * fdinfo )
         else if (EAGAIN == errno) {
             // read may not complete. put offset back to fdinfo for next read
             LOG(DEBUG1) << "read from fd " << fdinfo->fd << " recved EAGAIN";
-            //fprintf(stderr, "    HTTP. read from fd %d recved EAGAIN\n", fdinfo->fd);
             fdinfo->buff_offset = offset;
             return -1;
         }
         else {
             LOG(DEBUG1) << "read from fd " << fdinfo->fd << " failed. errno " << errno;
-            //fprintf(stderr, "    HTTP. read from fd %d failed, errno %d\n", 
-            //        fdinfo->fd, errno);
             return -1;
         }
     }

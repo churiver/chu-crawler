@@ -28,7 +28,7 @@ enum LogLevel
 class Logger
 {
 public:
-    Logger (LogLevel );
+    Logger (LogLevel, bool printToConsole = false );
 
     ~Logger ( );
 
@@ -50,15 +50,17 @@ private:
     static void * daemon (void * );
 
     std::ostringstream _oss;
+    bool _printToConsole;
+    LogLevel _level;
     
-    static std::ofstream _ofs;
-    static thread::BlockingQueue<std::string> _msg_que;
+    static std::ofstream s_ofs;
+    static thread::BlockingQueue<std::string> s_msg_que;
     // daemon controls 
-    static bool _shutdown;
-    static pthread_t _daemon_tid;
+    static bool s_is_shutdown;
+    static pthread_t s_daemon_tid;
     // params
-    static LogLevel _min_level;
-    static int _low_watermark;
+    static LogLevel s_min_level;
+    static int s_low_watermark;
 };
 
 
@@ -68,6 +70,11 @@ private:
     else  \
         logs::Logger(logs::level) << "[" << __FUNCTION__ << "] "
 
+#define LOGnPRINT(level) \
+    if (logs::level < logs::Logger::getMinlevel()) \
+        ; \
+    else  \
+        logs::Logger(logs::level, true) << "[" << __FUNCTION__ << "] "
 };
 
 #endif

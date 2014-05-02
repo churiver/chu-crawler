@@ -40,15 +40,15 @@ void BlockingQueue<T>::put (const T & val )
 {
     pthread_mutex_lock(&mutex_queue);
     
-//    fprintf(stderr, "  BlockingQ. put: 1. wait\n");
+//    fprintf(stderr, "  BlockingQ put. 1. %d wait\n", pthread_self());
     while (container.size() == _capacity) {
         int rc = pthread_cond_wait(&cond_is_full, &mutex_queue);
 //        fprintf(stderr, "  BlockingQ. put: 2. cond_wait return %d\n", rc);
     }
 
     container.push_back(val);
-//    fprintf(stderr, "BlockingQ put. %d waken up. queue size %d\n", 
-//            pthread_self(), container.size());
+    fprintf(stderr, "BlockingQ put. %d waken up and put. queue size %d\n", 
+            pthread_self(), container.size());
     
 //    fprintf(stderr, "  BlockingQ. put: 4. signal cond_is_empty. contanier size %d\n", container.size());
     int rc = pthread_cond_signal(&cond_is_empty);

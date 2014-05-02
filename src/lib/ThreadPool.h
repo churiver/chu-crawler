@@ -53,7 +53,7 @@ private:
 
     BlockingQueue<Task *> _task_queue;
     std::vector<pthread_t> _thread_list;
-    bool _shutdown;
+    bool _is_shutdown;
 };
 
 };

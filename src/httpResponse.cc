@@ -87,16 +87,13 @@ void Response::setHeaders (const char * header_start, int len )
 void Response::output (bool print_body )
 {
     LOG(DEBUG3) << "Response\n\tStatus Code: " << status_code;
-    //fprintf(stderr, "\t\n-- Output Response\n\tStatus Code: %d\n", status_code);
     std::map<std::string, std::string>::iterator it;
     for (it = header_map.begin(); it != header_map.end(); it++) {
         LOG(DEBUG3) << "\t" << it->first << ": " << it->second;
-        //fprintf(stderr, "\t%s: %s\n", it->first.c_str(), it->second.c_str());
     }
     
     if (true == print_body) {
         LOG(DEBUG3) << "\t" << body;
-        //fprintf(stderr, "\tBody: %s\n", body.c_str());
     }
 }
 
@@ -124,7 +121,6 @@ int Response::download (const char * dirname, const char * filename)
         if (stat(_fullpath, &st) == -1) {
             mkdir(_fullpath, 0700);
             LOG(INFO) << "creating download dir " << _fullpath;
-            //fprintf(stdout, "dir %s does not exist, creating\n", _fullpath);
         }
 
         int len = strlen(_fullpath);
@@ -133,7 +129,6 @@ int Response::download (const char * dirname, const char * filename)
             _fullpath[len + 1] = '\0';
         }
         LOG(INFO) << "download dir is " << _fullpath;
-        //fprintf(stderr, "download path is %s\n", _fullpath);
     }
 
     std::ofstream ofs_file;
@@ -141,52 +136,8 @@ int Response::download (const char * dirname, const char * filename)
     ofs_file << body;
     ofs_file.close();
     LOG(DEBUG3) << "downloaded " << filename;
-    //fprintf(stderr, "downloaded %s to %s\n", filename, dirname);
 
-    //delete [] filename;
     return 0;
 }
-
-
-//const char * Response::getFileName (const std::string & url )
-//{
-//    return getFileName(url.c_str());
-//}
-
-
-//const char * Response::getFileName (const char * url )
-//{
-//  regex throw regex_error
-//    std::regex expr("[\\?/:*|<>\"']");
-//    std::string result = std::regex_replace(url, expre, "_");
-//    return result;
-/*
-    const char * url_ptr = strstr(url, "://");
-    url_ptr = (nullptr == url_ptr) ? url : (url_ptr + 3);
-    
-    size_t name_len = strlen(url_ptr);
-    // TODO max name_len 64 load from conf
-    name_len = (name_len < 64) ? name_len : 64;
-    char * name = new char[name_len + 6]();
-    char * name_ptr = name;
-    
-    for (int i = 0; i < name_len; i++) {
-        if (*url_ptr == '/' || *url_ptr == '\\' ||
-                *url_ptr == '?' || *url_ptr == ':' ||
-                *url_ptr == '*' || *url_ptr == '|' ||
-                *url_ptr == '<' || *url_ptr == '>' ||
-                *url_ptr == '"' || *url_ptr == '\'') {
-            *name_ptr = '_';
-        }
-        else {
-            *name_ptr = *url_ptr;
-        }
-        name_ptr++;
-        url_ptr++;
-    }
-    *name_ptr = '\0';
-
-    return strcat(name, ".html");
-}*/
 
 };

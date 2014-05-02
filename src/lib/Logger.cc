@@ -9,7 +9,9 @@
 #include "Logger.h"
 
 #include <unistd.h>
+#include <ctime>
 
+#include <iostream>
 #include <map>
 
 namespace logs {
@@ -22,29 +24,37 @@ const int DEFAULT_LOW_WATERMARK = 32;
 
 
 // define static members in global scope
-std::ofstream                       Logger::_ofs;
-thread::BlockingQueue<std::string>  Logger::_msg_que;
-bool                                Logger::_shutdown;
-pthread_t                           Logger::_daemon_tid;
-LogLevel                            Logger::_min_level;
-int                                 Logger::_low_watermark;
+std::ofstream                       Logger::s_ofs;
+thread::BlockingQueue<std::string>  Logger::s_msg_que;
+bool                                Logger::s_is_shutdown;
+pthread_t                           Logger::s_daemon_tid;
+LogLevel                            Logger::s_min_level;
+int                                 Logger::s_low_watermark;
 
 
-Logger::Logger (LogLevel level )
+Logger::Logger (LogLevel level, bool printToConsole )
+    : _level(level), _printToConsole(printToConsole)
 {
-    _oss << "[" << LEVEL_STR[level] << "]"; // TODO time/thread id
-    if (ERROR == level) {
-        destroy();
-        sleep(1);
-        throw; // TODO flush to file
-    }
+    char datetime[16];
+    time_t now = time(nullptr);
+    strftime(datetime, sizeof(datetime), "%m/%d %T", localtime(&now));
+    _oss << "[" << LEVEL_STR[level] << "]["  << datetime << "]"; // TODO thread id
 }
 
 
 Logger::~Logger ( )
 {
     _oss << "\n";
-    _msg_que.put(_oss.str());
+    if (_printToConsole || (ERROR == _level)) {
+        std::cerr << _oss.str();
+    }
+    s_msg_que.put(_oss.str());
+
+/*    if (ERROR == _level) {
+        destroy(); // flush to file
+        sleep(1);
+        throw;
+    }*/
 }
 
 
@@ -54,37 +64,37 @@ void Logger::init(std::string logfile, std::string min_level, int low_watermark)
     if (logfile.empty() || ("" == logfile)) {
         logfile = DEFAULT_LOG_FILE;
     }
-    _ofs.open(logfile);
-    if (!_ofs.is_open()) {
+    s_ofs.open(logfile);
+    if (!s_ofs.is_open()) {
         throw;
     }
 
     // set min_level
     if ("DEBUG1" == min_level) {
-        _min_level = DEBUG1;
+        s_min_level = DEBUG1;
     }
     else if ("DEBUG2" == min_level) {
-        _min_level = DEBUG2;
+        s_min_level = DEBUG2;
     }
     else if ("DEBUG3" == min_level) {
-        _min_level = DEBUG3;
+        s_min_level = DEBUG3;
     }
     else if ("WARNING" == min_level) {
-        _min_level = WARNING;
+        s_min_level = WARNING;
     }
     else if ("ERROR" == min_level) {
-        _min_level = ERROR;
+        s_min_level = ERROR;
     }
     else {
-        _min_level = INFO;
+        s_min_level = INFO;
     }
 
     // set low watermark
-    _low_watermark = (0 == low_watermark) ? 
+    s_low_watermark = (0 == low_watermark) ? 
                         DEFAULT_LOW_WATERMARK : low_watermark;
 
     // run daemon thread
-    int ret = pthread_create(&_daemon_tid, nullptr, Logger::daemon, nullptr);
+    int ret = pthread_create(&s_daemon_tid, nullptr, Logger::daemon, nullptr);
     if (ret != 0) {
         throw;
     }
@@ -93,34 +103,34 @@ void Logger::init(std::string logfile, std::string min_level, int low_watermark)
 
 void Logger::destroy ( )
 {
-    _shutdown = true;
-    _msg_que.put("");
-    int ret = pthread_join(_daemon_tid, nullptr);
+    s_is_shutdown = true;
+    s_msg_que.put("");
+    int ret = pthread_join(s_daemon_tid, nullptr);
     if (ret != 0) {
-        fprintf(stderr, "Logger destroy failed\n");
+        std::cerr << "Logger destroy failed\n";
     }
 }
 
 
 LogLevel Logger::getMinlevel ( )
 {
-    return _min_level;
+    return s_min_level;
 }
 
 
 void * Logger::daemon (void * arg)
 {
     int count = 0;
-    while (_shutdown != true) {
-        _ofs << _msg_que.take();
+    while (s_is_shutdown != true) {
+        s_ofs << s_msg_que.take();
         count++;
-        if (count > _low_watermark) {
+        if (count > s_low_watermark) {
             count = 0;
-            _ofs.flush();
+            s_ofs.flush();
         }
     }
-    _ofs.close();
-    fprintf(stderr, "Logger shutting down\n");
+    s_ofs.close();
+    std::cerr << "Logger shutting down\n";
     return nullptr;
 }
 
@@ -128,7 +138,7 @@ void * Logger::daemon (void * arg)
 template <typename T>
 Logger & Logger::operator<< (T const & value)
 {
-   _oss << value;
+   s_oss << value;
    return *this;
 }
 */
