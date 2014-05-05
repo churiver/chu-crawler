@@ -54,9 +54,8 @@ private:
     LogLevel _level;
     
     static std::ofstream s_ofs;
-    static thread::BlockingQueue<std::string> s_msg_que;
+    static thread::BlockingQueue<std::string> s_msg_queue;
     // daemon controls 
-    static bool s_is_shutdown;
     static pthread_t s_daemon_tid;
     // params
     static LogLevel s_min_level;

@@ -14,7 +14,7 @@
 namespace transport {
 
 
-#define MAX_EPOLL_EVENTS 20
+#define MAX_EPOLL_EVENTS 128
 #define RECV_SIZE 1024*4
 #define MAX_RECV_SIZE 1024*1024
 #define DEFAULT_BUFF_CAPACITY 1024*10
@@ -22,10 +22,10 @@ namespace transport {
 struct FdInfo
 {
     char * uri; // apply to ethier socket (url) or file (path)
-    char * buff; // size 8
+    char * buff;
     size_t buff_offset;
-    size_t buff_capacity; // size 8
-    int    fd; // size 4
+    size_t buff_capacity;
+    int    fd;
 };
 
 int getEpollfd ( );
@@ -40,6 +40,6 @@ int recv (struct FdInfo * );
 
 int setNonblock (int sockfd );
 
-}; // end of package namespace
+};
 
 #endif

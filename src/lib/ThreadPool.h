@@ -49,11 +49,11 @@ public:
 
 private:
     static void * executeThread (void * );
-    static void stopThread (void * );
+//    static void stopThread (void * );
 
     BlockingQueue<Task *> _task_queue;
     std::vector<pthread_t> _thread_list;
-    bool _is_shutdown;
+    size_t _poolid;
 };
 
 };

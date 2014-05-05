@@ -19,7 +19,7 @@ namespace http {
 class Url
 {
 public:
-    Url (const char *, bool host_path_only = false);
+    Url (const char *, bool no_ip = false);
 
     Url (const Url & );
 
@@ -29,24 +29,28 @@ public:
 
     const std::string & getStr ( ) const;
 
-    State        getState ( ) const;
+    State getState ( ) const;
 
-    int          getPort ( ) const;
+    int getPort ( ) const;
 
     const char * getIp ( ) const;
+
+    const char * getScheme ( ) const;
 
     const char * getHost ( ) const;
 
     const char * getPath ( ) const;
 
+    void output ( );
+
 private:
-    std::string urlstr;
-    State  state;
-    int    port;
-    char * ip;
-    char * scheme;
-    char * host;
-    char * path;
+    std::string _urlstr;
+    State  _state;
+    int    _port;
+    char * _ip;
+    char * _scheme;
+    char * _host;
+    char * _path;
 };
 
 };

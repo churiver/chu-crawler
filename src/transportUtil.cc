@@ -32,7 +32,7 @@ int getEpollfd ( )
             LOG(ERROR) << "epoll_create() failed. errno " << errno;
             exit(EXIT_FAILURE);
         }
-        LOG(INFO) << "epoll_create() succeed. fd = " << epollfd;
+        LOG(DEBUG3) << "epoll_create() succeed. fd = " << epollfd;
     }
 
     return epollfd;
@@ -61,12 +61,12 @@ int connectTo (const char * ip, int port )
 
 	int sockfd;
 	if (-1 == (sockfd = socket(AF_INET, SOCK_STREAM, 0))) {
-        LOG(ERROR) << "socket error. errno " << errno;
+        LOG(WARNING) << "socket error. errno " << errno;
 		return -1;
 	}
 
 	if (-1 == connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) {
-        LOG(ERROR) << "connect error. errno " << errno;
+        LOG(WARNING) << "connect error. errno " << errno;
 		return -1;
 	}
 
@@ -105,7 +105,7 @@ int send (struct FdInfo * fdinfo )
             return -1;
         }
         else {
-            LOG(ERROR) << "write to fd " << sockfd << " failed. errno " << errno;
+            LOG(WARNING) << "write to fd " << sockfd << " failed. errno " << errno;
             return -1;
         }
     }

@@ -10,9 +10,13 @@
 
 #include <unistd.h>
 #include <ctime>
+#include <sys/syscall.h>
+#include <unistd.h>
 
 #include <iostream>
 #include <map>
+
+#define gettid() syscall(__NR_gettid)  
 
 namespace logs {
 
@@ -25,8 +29,7 @@ const int DEFAULT_LOW_WATERMARK = 32;
 
 // define static members in global scope
 std::ofstream                       Logger::s_ofs;
-thread::BlockingQueue<std::string>  Logger::s_msg_que;
-bool                                Logger::s_is_shutdown;
+thread::BlockingQueue<std::string>  Logger::s_msg_queue;
 pthread_t                           Logger::s_daemon_tid;
 LogLevel                            Logger::s_min_level;
 int                                 Logger::s_low_watermark;
@@ -38,7 +41,8 @@ Logger::Logger (LogLevel level, bool printToConsole )
     char datetime[16];
     time_t now = time(nullptr);
     strftime(datetime, sizeof(datetime), "%m/%d %T", localtime(&now));
-    _oss << "[" << LEVEL_STR[level] << "]["  << datetime << "]"; // TODO thread id
+    _oss << "[" << LEVEL_STR[level] << "]["  << datetime << "]" <<
+    "[" << gettid() << "]";
 }
 
 
@@ -48,13 +52,7 @@ Logger::~Logger ( )
     if (_printToConsole || (ERROR == _level)) {
         std::cerr << _oss.str();
     }
-    s_msg_que.put(_oss.str());
-
-/*    if (ERROR == _level) {
-        destroy(); // flush to file
-        sleep(1);
-        throw;
-    }*/
+    s_msg_queue.put(_oss.str());
 }
 
 
@@ -103,12 +101,14 @@ void Logger::init(std::string logfile, std::string min_level, int low_watermark)
 
 void Logger::destroy ( )
 {
-    s_is_shutdown = true;
-    s_msg_que.put("");
+    s_msg_queue.put("");
+    //fprintf(stderr, "Logger destroying...\n");
     int ret = pthread_join(s_daemon_tid, nullptr);
     if (ret != 0) {
         std::cerr << "Logger destroy failed\n";
     }
+    s_ofs.close();
+    //std::cerr << "Logger destroyed\n";
 }
 
 
@@ -120,17 +120,20 @@ LogLevel Logger::getMinlevel ( )
 
 void * Logger::daemon (void * arg)
 {
-    int count = 0;
-    while (s_is_shutdown != true) {
-        s_ofs << s_msg_que.take();
+    static int count = 0;
+    while (true) {
+        std::string log = s_msg_queue.take();
+        if (log.empty()) {
+            //std::cerr << "---- Logger daemon read empty string, will exit\n";
+            return nullptr;
+        }
+        s_ofs << log;
         count++;
         if (count > s_low_watermark) {
             count = 0;
             s_ofs.flush();
         }
     }
-    s_ofs.close();
-    std::cerr << "Logger shutting down\n";
     return nullptr;
 }
 
@@ -142,5 +145,4 @@ Logger & Logger::operator<< (T const & value)
    return *this;
 }
 */
-
 };

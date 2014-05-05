@@ -55,18 +55,25 @@ int processResponse (http::Response & resp, http::Url & url )
     
     pthread_mutex_lock(&invalid_mutex);
     pthread_mutex_lock(&valid_mutex);
-    
+
     int valid = 0;
 
-    std::string content_type = resp.getHeader(http::CONTENT_TYPE);
-    if (content_type.find(http::CONTENT_TYPE_HTML) == std::string::npos) {
-        LOG(DEBUG3) << "skipped non-webpage response from " << url.getStr();
-        invalid_urlset.insert(url.getStr());
-        valid = -1;
+    if ((invalid_urlset.find(url.getStr()) != invalid_urlset.end()) ||
+        (valid_urlset.find(url.getStr()) != valid_urlset.end())) {
+        valid = -1; // visited already
     }
     else {
-        valid_urlset.insert(url.getStr());
-        valid = 0;
+        std::string content_type = resp.getHeader(http::CONTENT_TYPE);
+        if (content_type.find(http::CONTENT_TYPE_HTML) == std::string::npos) {
+            LOG(DEBUG3) << "skipped response from " << url.getStr() << 
+                " . Content-type: " << content_type;
+            invalid_urlset.insert(url.getStr());
+            valid = -1;
+        }
+        else {
+            valid_urlset.insert(url.getStr());
+            valid = 0;
+        }
     }
 
     pthread_mutex_unlock(&valid_mutex);
@@ -105,6 +112,10 @@ int reapLink (http::Response & resp, std::list<std::string> & link_tbl )
         else {
             link_end = strpbrk(link_pos, " >\t\r\n");
         }
+        const char * anchor_pos = strchr(link_pos, '#');
+        if ((anchor_pos != nullptr) && (anchor_pos < link_end)) {
+            link_end = anchor_pos;
+        }
 
         if (link_end == nullptr) {
             continue;
@@ -121,13 +132,10 @@ int reapLink (http::Response & resp, std::list<std::string> & link_tbl )
 /* iterate links, filter out non-qualified ones, resolve relative ones, dump */
 int processLink (http::Url & url, std::list<std::string> & link_tbl )
 {
-    LOG(DEBUG1) << pthread_self() << " locking invalid_url_mutex";
     pthread_mutex_lock(&invalid_mutex);
-    LOG(DEBUG1) << pthread_self() << " locked invalid_url_mutex";
-    LOG(DEBUG1) << pthread_self() << " locking valid_url_mutex";
     pthread_mutex_lock(&valid_mutex);
-    LOG(DEBUG1) << pthread_self() << " locked valid_url_mutex";
     
+    const std::string scheme = url.getScheme();
     const std::string host = url.getHost();
     const std::string path = url.getPath();
     std::list<std::string>::iterator it = link_tbl.begin(); 
@@ -140,7 +148,7 @@ int processLink (http::Url & url, std::list<std::string> & link_tbl )
         }
         else if ((http::validateUrl(*it) != 0) ||
                  (http::normalizeUrl(*it) != 0) ||
-                 (http::resolveUrl(*it, host, path) != 0)) {
+                 (http::resolveUrl(*it, scheme, host, path) != 0)) {
             invalid_urlset.insert(link);
             LOG(DEBUG2) << "link " << link << " is invalid";
             it = link_tbl.erase(it);
@@ -152,12 +160,8 @@ int processLink (http::Url & url, std::list<std::string> & link_tbl )
         }
     }
 
-    LOG(DEBUG1) << pthread_self() << " unlocking valid_url_mutex";
     pthread_mutex_unlock(&valid_mutex);
-    LOG(DEBUG1) << pthread_self() << " unlocked valid_url_mutex";
-    LOG(DEBUG1) << pthread_self() << " unlocking invalid_url_mutex";
     pthread_mutex_unlock(&invalid_mutex);
-    LOG(DEBUG1) << pthread_self() << " unlocked invalid_url_mutex";
     return link_tbl.size();
 }
 
@@ -168,7 +172,7 @@ void downloadText (const std::string & url, const std::string & content )
     std::ofstream ofs_file (g_download_dir + "/" + filename);
     ofs_file << content;
     ofs_file.close();
-    LOGnPRINT(DEBUG3) << "downloaded " << url; 
+    LOGnPRINT(INFO) << "downloaded " << url << ". " << content.size() << " bytes"; 
 }
 
 };

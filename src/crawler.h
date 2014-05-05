@@ -9,6 +9,8 @@
 #ifndef CRAWLER_H
 #define CRAWLER_H
 
+#include <pthread.h>
+
 #include <string>
 #include <vector>
 #include <map>
@@ -30,10 +32,12 @@ const int DEFAULT_DNLDCOUNT = 100;
 std::string g_download_dir = DEFAULT_DOWNLOAD_DIR;
 int g_target_dnldcount = DEFAULT_DNLDCOUNT;
 int g_current_dnldcount = 0;
+bool g_target_done = false;
 
-thread::ThreadPool g_urltask_pool(6, 32); // TODO from conf
+thread::ThreadPool g_urltask_pool(6, 128); // TODO from conf
 thread::ThreadPool g_responsetask_pool(6, 64); // TODO from conf
 std::vector<std::string> g_seeds;
+pthread_mutex_t target_mutex;
 
 int init( );
 

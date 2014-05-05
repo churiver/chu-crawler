@@ -35,18 +35,18 @@ Response::Response(const char * resp_msg)
     const char * status_end = strstr(resp_msg, CRLF);
     if ((setStatusCode(resp_msg, status_end - resp_msg) != 0) ||
             (*(status_end + 3) == '\0'))  {
-        state = ERR_RESP_INVALID;
+        _state = ERR_RESP_INVALID;
         return;
     }
 
     const char * header_start = status_end + strlen(CRLF);
     const char * header_end = strstr(header_start, CRLFx2);
     if (nullptr == header_end) {
-        body = "";
+        _body = "";
         setHeaders(header_start, strlen(header_start));
     }
     else {
-        body = std::string(header_end + strlen(CRLFx2));
+        _body = std::string(header_end + strlen(CRLFx2));
         setHeaders(header_start, header_end - header_start);
     }
 }
@@ -59,7 +59,7 @@ int Response::setStatusCode (const char * status_line, int len )
 {
     const char * code_begin = strchr(status_line, ' ');
     if ((nullptr == code_begin) ||
-            (0 == (status_code = atoi(code_begin + 1)))) {
+            (0 == (_status_code = atoi(code_begin + 1)))) {
         return -1;
     }
     return 0; 
@@ -78,26 +78,44 @@ void Response::setHeaders (const char * header_start, int len )
         }
         // a '\n' is in each line except first one, skip it
         std::size_t line_start = (header_line[0] == '\n') ? 1 : 0;
-        header_map[header_line.substr(line_start, colon_pos - line_start)] = 
+        _header_map[header_line.substr(line_start, colon_pos - line_start)] = 
             header_line.substr(colon_pos + 2); // skip ": "
     }
 }
 
 
+int Response::getStatusCode ( ) const
+{
+    return _status_code;
+}
+
+
+const std::string & Response::getHeader (const std::string key)
+{
+    return _header_map[key]; // key can't be reference
+}
+
+
+const std::string & Response::getBody ( ) const
+{
+    return _body;
+}
+
+
 void Response::output (bool print_body )
 {
-    LOG(DEBUG3) << "Response\n\tStatus Code: " << status_code;
+    LOG(DEBUG3) << "Response\n\tStatus Code: " << _status_code;
     std::map<std::string, std::string>::iterator it;
-    for (it = header_map.begin(); it != header_map.end(); it++) {
+    for (it = _header_map.begin(); it != _header_map.end(); it++) {
         LOG(DEBUG3) << "\t" << it->first << ": " << it->second;
     }
     
     if (true == print_body) {
-        LOG(DEBUG3) << "\t" << body;
+        LOG(DEBUG3) << "\t" << _body;
     }
 }
 
-
+/*
 int Response::download (const std::string & dirname, const std::string & filename)
 {
     fprintf(stderr, "download string verstion\n");
@@ -139,5 +157,5 @@ int Response::download (const char * dirname, const char * filename)
 
     return 0;
 }
-
+*/
 };

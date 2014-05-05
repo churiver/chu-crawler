@@ -142,7 +142,8 @@ int normalizeUrl (std::string & urlstr )
 }
 
 
-int resolveUrl (std::string & urlstr, const std::string & host, const std::string & path )
+int resolveUrl (std::string & urlstr, const std::string & scheme, 
+                const std::string & host, const std::string & path )
 {
    if ((urlstr.size() == 0) || (urlstr.find("http") == 0)) {
        return 0; // absolute url
@@ -152,10 +153,10 @@ int resolveUrl (std::string & urlstr, const std::string & host, const std::strin
    }
 
    if (urlstr[0] == '/') { // abs-relative url
-       urlstr = host + urlstr;
+       urlstr = scheme + "://" + host + urlstr;
    }
    else { // relative url
-       urlstr = host + path + urlstr;
+       urlstr = scheme + "://" + host + path + urlstr;
    }
 
    return 0;

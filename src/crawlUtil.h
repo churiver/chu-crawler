@@ -21,7 +21,7 @@
 namespace crawl {
 
 
-// replace with struct conf when params increase
+// TODO replace with struct conf when params increase
 
 void init ( );
 

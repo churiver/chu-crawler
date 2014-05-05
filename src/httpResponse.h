@@ -25,38 +25,24 @@ public:
 
     ~Response ( );
 
+    int getStatusCode ( ) const;
 
-    const std::string & getHeader (const std::string key)
-    {
-        return header_map[key]; // key can't be reference
-    }
+    const std::string & getHeader (const std::string );
 
-
-    int getStatusCode ( ) const
-    {
-        return status_code;
-    }
-
-
-    const std::string & getBody ( ) const
-    {
-        return body;
-    }
-
+    const std::string & getBody ( ) const;
 
     void output (bool print_body = false );
 
-    int download (const std::string &, const std::string & );
+    //int download (const std::string &, const std::string & );
     
-    int download (const char *, const char * );
-
+    //int download (const char *, const char * );
 
 private:
 
-    State state;
-    int status_code;
-    std::string body;
-    std::map<std::string, std::string> header_map;
+    State _state;
+    int _status_code;
+    std::string _body;
+    std::map<std::string, std::string> _header_map;
 
     int setStatusCode (const char *, int ); 
 

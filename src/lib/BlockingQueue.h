@@ -36,14 +36,21 @@ public:
 
     bool empty ( );
 
+    bool full ( );
+
+    void clear ( );
+
+    void interrupt ( );
+
 private:
-    std::deque<T> container;
+    std::deque<T> _container;
 
     size_t _capacity;
+    bool _is_stopped;
 
-    pthread_mutex_t mutex_queue;
-    pthread_cond_t cond_is_empty;
-    pthread_cond_t cond_is_full;
+    pthread_mutex_t _mutex_queue;
+    pthread_cond_t _cond_is_empty;
+    pthread_cond_t _cond_is_full;
 };
 
 };

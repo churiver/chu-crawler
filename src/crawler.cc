@@ -47,18 +47,19 @@ int main ( )
         g_urltask_pool.addTask(task);
     }
 
-    while (g_current_dnldcount < g_target_dnldcount) {
+    while (g_target_done != true) {
 
         do {
             nfds = epoll_wait(epollfd, events, MAX_EPOLL_EVENTS, -1);
-            LOG(INFO) << "epoll_wait() returns nfds " << nfds << ", errno " << errno;
+            LOG(DEBUG3) << "epoll_wait() returns nfds " << nfds << ", errno " 
+                << errno;
         } while ((nfds < 0) && (EINTR == errno));
 
         for (int i = 0; i < nfds; i++) {
             struct transport::FdInfo * fdinfo = 
                 (struct transport::FdInfo *)events[i].data.ptr;
 
-            LOG(INFO) << "events[" << i << "] event " << 
+            LOG(DEBUG3) << "events[" << i << "] event " << 
                     events[i].events << ", fd " << fdinfo->fd;
 
             int op = EPOLL_CTL_DEL;
@@ -85,7 +86,7 @@ int main ( )
             else if ((events[i].events & EPOLLERR) ||
                      (events[i].events & EPOLLHUP)) {
 
-                LOG(INFO) << "closing fd " << fdinfo->fd;
+                LOG(DEBUG3) << "closing fd " << fdinfo->fd;
                 transport::freeFdInfo(fdinfo);
                 close(sockfd); // close() will remove fd from epoll set
             }
@@ -136,8 +137,8 @@ int init( )
             conf_map[CONF_LOG_MIN_LEVEL],
             atoi(conf_map[CONF_LOG_LOW_WATERMARK].c_str())
             );
-
     crawl::init();
+    pthread_mutex_init(&target_mutex, nullptr);
 
     return 0;
 }
@@ -145,24 +146,34 @@ int init( )
 
 int destroy( )
 {
+    LOGnPRINT(INFO) << "Main destroying...";
     g_urltask_pool.destroy();
     g_responsetask_pool.destroy();
-    crawl::destroy();
     logs::Logger::destroy();
+    crawl::destroy();
+    pthread_mutex_destroy(&target_mutex);
+    LOGnPRINT(INFO) << "Main destroyed.";
 }
 
 
 void handleUrl(void * arg )
 {
-    LOG(INFO) << "entering task..";
+    LOG(DEBUG3) << "entering task..";
     http::Url url((char *)arg);
     free(arg);
     if (url.getState() != http::OK) {
-        LOG(WARNING) << "parsing url failed: " << url.getState();
+        LOG(WARNING) << "parsing url " << url.getStr() << " failed, state: " 
+            << url.getState();
         return;
     }
 
+    LOG(DEBUG3) << "connect to url " << url.getStr() << ":" << url.getPort();
     int sockfd = transport::connectTo(url.getIp(), url.getPort());
+    if (-1 == sockfd) {
+        LOG(WARNING) << "connect to url " << url.getStr() << " failed.";
+        return;
+    }
+
     char * req_msg = http::setRequest(url.getHost(), url.getPath());
 
     struct transport::FdInfo * fdinfo = (struct transport::FdInfo *)calloc(1,
@@ -184,7 +195,7 @@ void handleUrl(void * arg )
         ev.events = EPOLLIN | EPOLLONESHOT;
         ev.data.ptr = fdinfo;
         free(fdinfo->buff);
-        fdinfo->buff = nullptr; // forgot change buff to NULL resulted overflow!
+        fdinfo->buff = nullptr; // not setting buff to NULL will result overflow
         epoll_ctl(transport::getEpollfd(), EPOLL_CTL_ADD, sockfd, &ev);
     }
 }
@@ -201,8 +212,20 @@ void handleResponse(void * arg )
     if ((crawl::processResponse(resp, url)) != 0) {
         return;
     }
+
+    pthread_mutex_lock(&target_mutex);
+    if (g_current_dnldcount >= g_target_dnldcount) {
+        g_target_done = true;
+        pthread_mutex_unlock(&target_mutex);
+        return;
+    }
+    else {
+        g_current_dnldcount++;
+        LOGnPRINT(INFO) << "current download count: " << g_current_dnldcount;
+        pthread_mutex_unlock(&target_mutex);
+    }
+
     crawl::downloadText(url.getStr(), resp.getBody());
-    g_current_dnldcount++;
 
     std::list<std::string> link_tbl;
     int total_links = crawl::reapLink(resp, link_tbl);
@@ -216,7 +239,8 @@ void handleResponse(void * arg )
 
     std::list<std::string>::iterator it = link_tbl.begin();
     for ( ; it != link_tbl.end(); it++) {
-        thread::Task * task = new thread::Task(handleUrl, (void *)strdup((*it).c_str()));
+        thread::Task * task = 
+            new thread::Task(handleUrl, (void *)strdup((*it).c_str()));
         g_urltask_pool.addTask(task);
     }
 }

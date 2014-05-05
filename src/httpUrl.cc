@@ -18,65 +18,71 @@
 namespace http {
 
 
-Url::Url (const char * url, bool host_path_only )
-    : port(80), state(OK), scheme(nullptr),
-        host(nullptr), path(nullptr), ip(nullptr)
+Url::Url (const char * url, bool no_ip )
+    : _port(80), _state(OK), _scheme(nullptr),
+        _host(nullptr), _path(nullptr), _ip(nullptr)
 {
     if (url == nullptr) {
-        state = ERR_URL_EMPTY;
+        _state = ERR_URL_EMPTY;
         return;
     }
-    
-    urlstr = std::string(url);
     const char * url_ptr = url;
+    _urlstr = std::string(url_ptr);
     
     const char * scheme_end = strstr(url_ptr, "://");
     if (scheme_end != nullptr) {
         scheme_end += 3; // skip "://"
-        scheme = strndup(url_ptr, scheme_end - url_ptr - 3);
+        _scheme = strndup(url_ptr, scheme_end - url_ptr - 3);
     }
     else {
         scheme_end = url_ptr;
+        _scheme = strdup("http");
     }
     
     const char * port_start = strchr(scheme_end, ':');
-    if ((port_start != nullptr) && 
-            (0 == (port = atoi(port_start + 1)))) {
-        state = ERR_URL_PORT;
-        return;
+    const char * path_start = strchr(scheme_end, '/');
+    if ((port_start != nullptr)) {
+        if ((path_start == nullptr) || (port_start < path_start)) {
+            if (0 == (_port = atoi(port_start + 1))) {
+                _state = ERR_URL_PORT;
+                return;
+            }
+        }
+    }
+    else if (0 == strcmp("https", _scheme)) {
+        _port = 443;
     }
 
-    const char * path_start = strchr(scheme_end, '/');
     if (path_start == nullptr) {
-        host = strdup(scheme_end);
-        path = strdup("/");
+        _host = strdup(scheme_end);
+        _path = strdup("/");
     }
     else {
-        host = strndup(scheme_end, path_start - scheme_end);
-        path = strdup(path_start);
+        _host = strndup(scheme_end, path_start - scheme_end);
+        _path = strdup(path_start);
     }
 
-    if (true == host_path_only) {
+    if (true == no_ip) {
         return;
     }
 
     struct hostent * hptr;
-    if (((hptr = gethostbyname(host)) == nullptr) ||
+    if (((hptr = gethostbyname(_host)) == nullptr) ||
          (hptr->h_addr_list[0] == nullptr)) {
-        state = ERR_URL_IP;
+        _state = ERR_URL_IP;
         return;
     }
-    ip = strdup(hptr->h_addr_list[0]); 
+    _ip = strdup(hptr->h_addr_list[0]); 
 }
 
 
 Url::Url (const Url & rhs )
-    : port(rhs.port) 
+    : _port(rhs._port) 
 {
-    scheme = strdup(rhs.scheme);
-    host = strdup(rhs.host);
-    path = strdup(rhs.path);
-    ip = strdup(rhs.ip);
+    _scheme = strdup(rhs._scheme);
+    _host = strdup(rhs._host);
+    _path = strdup(rhs._path);
+    _ip = strdup(rhs._ip);
 }
 
 
@@ -84,76 +90,82 @@ Url & Url::operator= (const Url & rhs )
 {
     if (this == &rhs)
         return *this;
-    scheme = strdup(rhs.scheme);
-    host = strdup(rhs.host);
-    port = rhs.port;
-    path = strdup(rhs.path);
-    ip = strdup(rhs.ip);
+    _scheme = strdup(rhs._scheme);
+    _host = strdup(rhs._host);
+    _port = rhs._port;
+    _path = strdup(rhs._path);
+    _ip = strdup(rhs._ip);
     return *this;
 }
 
 
 Url::~Url ( )
 {
-    delete[] scheme;
-    delete[] host;
-    delete[] path;
-    delete[] ip;
+    delete[] _scheme;
+    delete[] _host;
+    delete[] _path;
+    delete[] _ip;
 }
 
 
-State        Url::getState ( ) const
+State Url::getState ( ) const
 {
-    return state;
+    return _state;
 }
 
 
-int          Url::getPort ( ) const
+int Url::getPort ( ) const
 {
-    return port;
+    return _port;
 }
 
 
 const std::string & Url::getStr ( ) const
 {
-    return urlstr;
+    return _urlstr;
 }
 
 
 const char * Url::getIp ( ) const
 {
-    return ip;
+    return _ip;
+}
+
+
+const char * Url::getScheme ( ) const
+{
+    return _scheme;
 }
 
 
 const char * Url::getHost ( ) const
 {
-    return host;
+    return _host;
 }
 
 
 const char * Url::getPath ( ) const
 {
-    return path;
+    return _path;
+}
+
+
+void Url::output ( )
+{
+    if (_state != OK)
+        fprintf(stderr, "Url invalid. err_state %d\n", _state);
+    else
+        fprintf(stderr, "\tUrl OK.\nscheme: %s\nhost: %s\n"
+                "port: %d\npath: %s\nip: %x\n\n",
+                _scheme, _host, _port, _path, _ip);
 }
 
 };
 
 /*
-void Url::output ( )
-{
-    if (state != OK)
-        fprintf(stderr, "Url invalid. err_state %d\n", state);
-    else
-        fprintf(stderr, "\tUrl OK.\nscheme: %s\nhost: %s\n"
-                "port: %d\npath: %s\nip: %x\n\n",
-                scheme, host, port, path, ip);
-}
-*/
-
-/*int main() {
-    std::string s("http://www.baidu.com");
-    http::Url url(s);
+int main() {
+    std::string s("http://en.wikipedia.org/wiki/Template:Disclaimers");
+    http::Url url(s.c_str());
     url.output();
 }
 */

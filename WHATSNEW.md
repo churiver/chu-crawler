@@ -1,3 +1,12 @@
+
+Version 0.9.7 - May 5th, 2014
+==============================
+Fix
+- Correct the interrupt mechanism of blocking queue to stop threads (ethier in block or not) completely.
+- Correct the means to set target done.
+- Improve Url parse to support ':' in url that is not part of port number.
+
+
 Version 0.9.6 - May 1st, 2014
 ==============================
 Update
