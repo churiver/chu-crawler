@@ -31,6 +31,16 @@ BlockingQueue<T>::BlockingQueue (size_t capacity )
 
 
 template <class T>
+BlockingQueue<T>::BlockingQueue (const BlockingQueue & rhs)
+    : _capacity(rhs._capacity), _container(rhs._container)
+{
+    pthread_mutex_init(&_mutex_queue, NULL);
+    pthread_cond_init(&_cond_is_empty, NULL);
+    pthread_cond_init(&_cond_is_full, NULL);
+}
+
+
+template <class T>
 BlockingQueue<T>::~BlockingQueue ( )
 {
     pthread_mutex_destroy(&_mutex_queue);
@@ -104,6 +114,13 @@ size_t BlockingQueue<T>::capacity ( )
 
 
 template <class T>
+void BlockingQueue<T>::capacity (size_t value )
+{
+    _capacity = value;
+}
+
+
+template <class T>
 bool BlockingQueue<T>::empty ( )
 {
     return _container.empty();
@@ -128,7 +145,7 @@ template <class T>
 void BlockingQueue<T>::interrupt ( )
 {
     pthread_mutex_lock(&_mutex_queue);
-    _is_stopped = true;;
+    _is_stopped = true;
     pthread_cond_broadcast(&_cond_is_empty);
     pthread_cond_broadcast(&_cond_is_full);
     pthread_mutex_unlock(&_mutex_queue);

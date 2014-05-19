@@ -37,7 +37,7 @@ const std::string urlToFileName (std::string );
 
 const char * urlToFileName (const char * );
 
-void downloadText (const std::string &, const std::string & );
+int downloadText (const std::string &, const std::string &, int );
 
 };
 

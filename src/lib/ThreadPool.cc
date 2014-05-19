@@ -12,6 +12,8 @@
 #include <cstdlib>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #define gettid() syscall(__NR_gettid)  
 
@@ -39,8 +41,8 @@ void Task::run ( )
 }
 
 
-ThreadPool::ThreadPool (size_t pool_size, size_t que_capacity )
-    : _task_queue(que_capacity)
+ThreadPool::ThreadPool (size_t pool_size, size_t que_capacity, int priority )
+    : _task_queue(que_capacity), _priority(priority)
 {
     static size_t s_next_poolid = 0;
     _poolid = s_next_poolid++;
@@ -93,8 +95,14 @@ bool ThreadPool::addTask (Task * task )
 void * ThreadPool::executeThread (void * arg )
 {
     ThreadPool * self = (ThreadPool *)arg;
+    
+    if (self->_priority != 0) {
+        int ret = setpriority(PRIO_PROCESS, gettid(), self->_priority);
+        fprintf(stderr, "set tid %d to priority of %d\n", gettid(), getpriority(PRIO_PROCESS, gettid()));
+    }
+
     while (true) {
-        // block at take() if queue is empty
+        // will block at take() if queue is empty
         Task * task = self->_task_queue.take();
         task->run(); // (* task)();
 
@@ -104,10 +112,4 @@ void * ThreadPool::executeThread (void * arg )
     return nullptr;
 }
 
-/*
-void ThreadPool::stopThread (void * arg )
-{
-    fprintf(stderr, "thread %d quit\n", gettid());    
-}
-*/
 };

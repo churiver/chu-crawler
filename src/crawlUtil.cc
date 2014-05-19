@@ -26,23 +26,28 @@ extern std::string g_download_dir;
 namespace crawl {
 
 
-std::set<std::string> valid_urlset;
-std::set<std::string> invalid_urlset;
-pthread_mutex_t valid_mutex;
-pthread_mutex_t invalid_mutex;
+// Status change of a url
+//          crawl-link     response
+// --------------------------------
+// url +---> invalid
+//     |---> pending +---> invalid
+//                   |---> valid
+//                   |---> (already in invalid/valid urlset)
+std::set<std::string> n_invalid_urlset;
+std::set<std::string> n_pending_urlset;
+std::set<std::string> n_valid_urlset;
+pthread_mutex_t urlset_mutex;
 
 
 void init ( )
 {
-    pthread_mutex_init(&valid_mutex, nullptr);
-    pthread_mutex_init(&invalid_mutex, nullptr);
+    pthread_mutex_init(&urlset_mutex, nullptr);
 }
 
 
 void destroy ( )
 {
-    pthread_mutex_destroy(&valid_mutex);
-    pthread_mutex_destroy(&invalid_mutex);
+    pthread_mutex_destroy(&urlset_mutex);
 }
 
 
@@ -50,34 +55,40 @@ void destroy ( )
 int processResponse (http::Response & resp, http::Url & url )
 {
     if (resp.getStatusCode() != 200) {
+        LOG(DEBUG3) << "skipped response from " << url.getStr() <<
+             " : status code = " << resp.getStatusCode();
         return -1; // TODO provide handler on 301
     }
     
-    pthread_mutex_lock(&invalid_mutex);
-    pthread_mutex_lock(&valid_mutex);
+    pthread_mutex_lock(&urlset_mutex);
+    
+    if (n_pending_urlset.find(url.getStr()) != n_pending_urlset.end()) {
+        LOG(DEBUG2) << "remove " << url.getStr() << " from pending urlset";
+        n_pending_urlset.erase(url.getStr());
+    }
 
     int valid = 0;
-
-    if ((invalid_urlset.find(url.getStr()) != invalid_urlset.end()) ||
-        (valid_urlset.find(url.getStr()) != valid_urlset.end())) {
-        valid = -1; // visited already
+    
+    if ((n_invalid_urlset.find(url.getStr()) != n_invalid_urlset.end()) ||
+        (n_valid_urlset.find(url.getStr()) != n_valid_urlset.end())) {
+        valid = -2; // visited already
     }
     else {
         std::string content_type = resp.getHeader(http::CONTENT_TYPE);
         if (content_type.find(http::CONTENT_TYPE_HTML) == std::string::npos) {
             LOG(DEBUG3) << "skipped response from " << url.getStr() << 
-                " . Content-type: " << content_type;
-            invalid_urlset.insert(url.getStr());
-            valid = -1;
+                " : Content-type = " << content_type;
+            n_invalid_urlset.insert(url.getStr());
+            valid = -3;
         }
         else {
-            valid_urlset.insert(url.getStr());
+            LOG(DEBUG2) << "insert " << url.getStr() << " into valid urlset";
+            n_valid_urlset.insert(url.getStr());
             valid = 0;
         }
     }
 
-    pthread_mutex_unlock(&valid_mutex);
-    pthread_mutex_unlock(&invalid_mutex);
+    pthread_mutex_unlock(&urlset_mutex);
     
     return valid;
 }
@@ -132,47 +143,54 @@ int reapLink (http::Response & resp, std::list<std::string> & link_tbl )
 /* iterate links, filter out non-qualified ones, resolve relative ones, dump */
 int processLink (http::Url & url, std::list<std::string> & link_tbl )
 {
-    pthread_mutex_lock(&invalid_mutex);
-    pthread_mutex_lock(&valid_mutex);
-    
+    pthread_mutex_lock(&urlset_mutex);
+
     const std::string scheme = url.getScheme();
     const std::string host = url.getHost();
     const std::string path = url.getPath();
     std::list<std::string>::iterator it = link_tbl.begin(); 
     for ( ; it != link_tbl.end(); ) {
         std::string link = *it;
-        if ((invalid_urlset.find(*it) != invalid_urlset.end()) ||
-            (valid_urlset.find(*it) != valid_urlset.end())) {
-            LOG(DEBUG2) << "link " << link << " is visited";
+        if ((n_valid_urlset.find(*it) != n_valid_urlset.end()) ||
+            (n_invalid_urlset.find(*it) != n_invalid_urlset.end()) || 
+            (n_pending_urlset.find(*it) != n_pending_urlset.end())) {
+            LOG(DEBUG2) << "link " << link << " is known";
             it = link_tbl.erase(it);
         }
         else if ((http::validateUrl(*it) != 0) ||
                  (http::normalizeUrl(*it) != 0) ||
                  (http::resolveUrl(*it, scheme, host, path) != 0)) {
-            invalid_urlset.insert(link);
+            n_invalid_urlset.insert(link);
             LOG(DEBUG2) << "link " << link << " is invalid";
             it = link_tbl.erase(it);
         }
         else {
-            valid_urlset.insert(link);
+            n_pending_urlset.insert(link);
             LOG(DEBUG2) << "link " << link << " is pending";
             it++;
         }
     }
 
-    pthread_mutex_unlock(&valid_mutex);
-    pthread_mutex_unlock(&invalid_mutex);
+    pthread_mutex_unlock(&urlset_mutex);
     return link_tbl.size();
 }
 
 
-void downloadText (const std::string & url, const std::string & content )
+int downloadText (const std::string & url, const std::string & content, int dnldcount )
 {
     std::string filename = http::urlToFileName(url);
-    std::ofstream ofs_file (g_download_dir + "/" + filename);
+    std::ofstream ofs_file (g_download_dir + "/" + std::to_string(dnldcount+1));// + "-" + filename);
+    //LOGnPRINT(INFO) << filename << " is_open = " << ofs_file.is_open() 
+    //        << ", rdstate = " << ofs_file.rdstate() << ", eof = " << ofs_file.eof()
+    //        << ", fail = " << ofs_file.fail() << ", bad = " << ofs_file.bad();
+    if (ofs_file.is_open() != true) {
+        LOGnPRINT(WARNING) << "download failed. reason: " << strerror(errno);
+        return -1;
+    }
     ofs_file << content;
     ofs_file.close();
     LOGnPRINT(INFO) << "downloaded " << url << ". " << content.size() << " bytes"; 
+    return 0;
 }
 
 };

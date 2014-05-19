@@ -15,6 +15,8 @@
 
 #include <arpa/inet.h>
 #include <sys/epoll.h>
+#include <sys/types.h>
+#include <netdb.h>
 #include <fcntl.h>
 #include <errno.h>
 
@@ -51,29 +53,52 @@ void freeFdInfo (struct FdInfo * fdinfo )
 }
 
 
-int connectTo (const char * ip, int port )
+int connectTo (const char * host, int port )
 {
-	struct sockaddr_in servaddr;
-	bzero(&servaddr, sizeof(servaddr));
-	servaddr.sin_family = AF_INET; 
-	servaddr.sin_port = htons(port);
-	memcpy(&servaddr.sin_addr, ip, 4);
+    static bool set_hints = true;
+    static struct addrinfo hints;
+    if (set_hints) {
+        memset(&hints, 0, sizeof(struct addrinfo));
+        hints.ai_family = AF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_flags = 0;
+        hints.ai_protocol = 0;
+        set_hints = false;
+    }
 
-	int sockfd;
-	if (-1 == (sockfd = socket(AF_INET, SOCK_STREAM, 0))) {
-        LOG(WARNING) << "socket error. errno " << errno;
-		return -1;
-	}
-
-	if (-1 == connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) {
-        LOG(WARNING) << "connect error. errno " << errno;
-		return -1;
-	}
+    char portstr[5];
+    sprintf(portstr, "%d", port);
+    struct addrinfo *addr, *addrptr;
+    if (0 != getaddrinfo(host, portstr, &hints, &addr)) {
+        LOG(WARNING) << "getaddrinfo() on " << host << " failed";
+        return -1;
+    }
 
 	char ipstr[INET_ADDRSTRLEN];
-	inet_ntop(AF_INET, ip, ipstr, sizeof(ipstr));
-    LOG(DEBUG3) << "connection to " << ipstr << " succeed. sockfd " << sockfd;
-    
+	int sockfd;
+    for (addrptr = addr; addrptr != nullptr; addrptr = addrptr->ai_next) {
+        sockfd = socket(addrptr->ai_family, addrptr->ai_socktype, 
+                        addrptr->ai_protocol);
+        if (-1 == sockfd) {
+            continue;
+        }
+
+        if (-1 != connect(sockfd, addrptr->ai_addr, addrptr->ai_addrlen)) {
+            inet_ntop(AF_INET, 
+                      &(((struct sockaddr_in *)(addrptr->ai_addr))->sin_addr),
+                      ipstr, 16);
+            LOG(DEBUG3) << "Connect to " << host << " succeed. sockfd = " << sockfd;
+            break;
+        }
+
+        close(sockfd);
+    }
+
+    if (nullptr == addrptr) {
+        LOG(WARNING) << "Could not connect to " << host;
+    }
+
+    freeaddrinfo(addr);
     setNonblock(sockfd);
 
 	return sockfd;	

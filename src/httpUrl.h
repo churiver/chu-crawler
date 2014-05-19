@@ -19,7 +19,7 @@ namespace http {
 class Url
 {
 public:
-    Url (const char *, bool no_ip = false);
+    Url (const char *);
 
     Url (const Url & );
 
@@ -33,8 +33,6 @@ public:
 
     int getPort ( ) const;
 
-    const char * getIp ( ) const;
-
     const char * getScheme ( ) const;
 
     const char * getHost ( ) const;
@@ -47,7 +45,6 @@ private:
     std::string _urlstr;
     State  _state;
     int    _port;
-    char * _ip;
     char * _scheme;
     char * _host;
     char * _path;

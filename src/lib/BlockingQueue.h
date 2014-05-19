@@ -23,7 +23,9 @@ class BlockingQueue
 {
 public:
     BlockingQueue (size_t capacity = DEFAULT_QUEUE_CAPACITY);
-    
+
+    BlockingQueue (const BlockingQueue & );
+
     ~BlockingQueue ( );
 
     void put (const T & val );
@@ -33,6 +35,8 @@ public:
     size_t size ( );
 
     size_t capacity ( );
+
+    void capacity (size_t );
 
     bool empty ( );
 

@@ -14,7 +14,7 @@
 namespace transport {
 
 
-#define MAX_EPOLL_EVENTS 128
+#define MAX_EPOLL_EVENTS 256
 #define RECV_SIZE 1024*4
 #define MAX_RECV_SIZE 1024*1024
 #define DEFAULT_BUFF_CAPACITY 1024*10

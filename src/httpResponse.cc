@@ -33,7 +33,8 @@ const char * CRLFx2 = "\r\n\r\n";
 Response::Response(const char * resp_msg)
 {
     const char * status_end = strstr(resp_msg, CRLF);
-    if ((setStatusCode(resp_msg, status_end - resp_msg) != 0) ||
+    if ((nullptr == status_end) || 
+            (setStatusCode(resp_msg, status_end - resp_msg) != 0) ||
             (*(status_end + 3) == '\0'))  {
         _state = ERR_RESP_INVALID;
         return;

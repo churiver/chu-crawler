@@ -18,9 +18,9 @@
 namespace http {
 
 
-Url::Url (const char * url, bool no_ip )
+Url::Url (const char * url)
     : _port(80), _state(OK), _scheme(nullptr),
-        _host(nullptr), _path(nullptr), _ip(nullptr)
+        _host(nullptr), _path(nullptr)
 {
     if (url == nullptr) {
         _state = ERR_URL_EMPTY;
@@ -61,10 +61,11 @@ Url::Url (const char * url, bool no_ip )
         _host = strndup(scheme_end, path_start - scheme_end);
         _path = strdup(path_start);
     }
-
+/*
     if (true == no_ip) {
         return;
     }
+
 
     struct hostent * hptr;
     if (((hptr = gethostbyname(_host)) == nullptr) ||
@@ -72,7 +73,7 @@ Url::Url (const char * url, bool no_ip )
         _state = ERR_URL_IP;
         return;
     }
-    _ip = strdup(hptr->h_addr_list[0]); 
+    _ip = strdup(hptr->h_addr_list[0]); */
 }
 
 
@@ -82,7 +83,6 @@ Url::Url (const Url & rhs )
     _scheme = strdup(rhs._scheme);
     _host = strdup(rhs._host);
     _path = strdup(rhs._path);
-    _ip = strdup(rhs._ip);
 }
 
 
@@ -94,7 +94,6 @@ Url & Url::operator= (const Url & rhs )
     _host = strdup(rhs._host);
     _port = rhs._port;
     _path = strdup(rhs._path);
-    _ip = strdup(rhs._ip);
     return *this;
 }
 
@@ -104,7 +103,6 @@ Url::~Url ( )
     delete[] _scheme;
     delete[] _host;
     delete[] _path;
-    delete[] _ip;
 }
 
 
@@ -123,12 +121,6 @@ int Url::getPort ( ) const
 const std::string & Url::getStr ( ) const
 {
     return _urlstr;
-}
-
-
-const char * Url::getIp ( ) const
-{
-    return _ip;
 }
 
 
@@ -156,8 +148,8 @@ void Url::output ( )
         fprintf(stderr, "Url invalid. err_state %d\n", _state);
     else
         fprintf(stderr, "\tUrl OK.\nscheme: %s\nhost: %s\n"
-                "port: %d\npath: %s\nip: %x\n\n",
-                _scheme, _host, _port, _path, _ip);
+                "port: %d\npath: %s\n\n",
+                _scheme, _host, _port, _path);
 }
 
 };

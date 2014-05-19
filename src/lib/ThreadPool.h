@@ -34,12 +34,14 @@ private:
 
 
 #define DEFAULT_THREAD_POOL_SIZE 5
+#define DEFAULT_THREAD_PRIORITY 0
 
 class ThreadPool
 {
 public:
     ThreadPool (size_t pool_size = DEFAULT_THREAD_POOL_SIZE, 
-                size_t que_capacity = DEFAULT_QUEUE_CAPACITY);
+                size_t que_capacity = DEFAULT_QUEUE_CAPACITY,
+                int priority = DEFAULT_THREAD_PRIORITY);
 
     ~ThreadPool ( );
 
@@ -49,11 +51,11 @@ public:
 
 private:
     static void * executeThread (void * );
-//    static void stopThread (void * );
 
     BlockingQueue<Task *> _task_queue;
     std::vector<pthread_t> _thread_list;
     size_t _poolid;
+    int _priority;
 };
 
 };
