@@ -32,15 +32,15 @@ public:
 
     T take ( ); 
 
-    size_t size ( );
+    size_t getSize ( );
 
-    size_t capacity ( );
+    size_t getCapacity ( );
 
-    void capacity (size_t );
+    void setCapacity (size_t );
 
-    bool empty ( );
+    bool isEmpty ( );
 
-    bool full ( );
+    bool isFull ( );
 
     void clear ( );
 

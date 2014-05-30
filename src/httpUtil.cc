@@ -26,7 +26,17 @@ const std::string ALLOWED_FORMAT(".html.htm.php.do.jsp.asp.apsx");
 
 char * setRequest (const char * host, const char * path )
 {
-    char * req_msg = new char[512];
+    /*  Apache 2.0, 2.2: 8K
+        nginx: 4K - 8K
+        IIS: varies by version, 8K - 16K
+        Tomcat: varies by version, 8K - 48K
+    */
+    int param_len = strlen(host) + strlen(path);
+    if (param_len > 3968) { 
+        // 4096 - 128. 128 reserved for the rest of header
+        return nullptr;
+    }
+    char * req_msg = new char[param_len + 128];
     sprintf(req_msg,
             "GET %s HTTP/1.1\r\n"
             "Host: %s\r\n"

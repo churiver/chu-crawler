@@ -52,7 +52,7 @@ int main ( )
     while (g_target_done != true) {
         // epoll_wait maybe interrupted before events come so wrapped in while loop
         do {
-            nfds = epoll_wait(epollfd, events, MAX_EPOLL_EVENTS, 1000);
+            nfds = epoll_wait(epollfd, events, MAX_EPOLL_EVENTS, 5000);
             LOG(DEBUG3) << "epoll_wait() returns " << nfds << " nfds. errno " 
                 << errno;
         } while ((nfds < 0) && (EINTR == errno));
@@ -73,18 +73,20 @@ int main ( )
                 if ((ret = transport::recv(fdinfo)) != -1) {
                     thread::Task * task = 
                         new thread::Task(handleResponse, fdinfo);
-                    g_responsetask_pool.addTask(task);
+                    g_resptask_pool.addTask(task);
                     LOG(DEBUG3) << "Receive complete. closing fd " << sockfd;
                     close(sockfd);
                     g_connection_queue.take();
-                    LOG(DEBUG3) << "active connection queue decrease to " << g_connection_queue.size();
+                    LOG(DEBUG3) << "active connection queue decrease to " << 
+                        g_connection_queue.getSize();
                 }
                 // read uncomplete
                 else if ((-1 == ret) && (EAGAIN == errno)) {
                     events[i].events = events[i].events | EPOLLONESHOT;
                     op = EPOLL_CTL_MOD;
                     if (-1 == epoll_ctl(epollfd, op, fdinfo->fd, &events[i])) {
-                        LOG(ERROR) << "epoll_ctl() failed. reason " << strerror(errno);
+                        LOG(ERROR) << "epoll_ctl() failed. reason " << 
+                            strerror(errno);
                         return -1;
                     }
                 }
@@ -95,7 +97,8 @@ int main ( )
                 LOG(DEBUG3) << "Receive failed. closing fd " << sockfd;
                 close(sockfd); // close() will remove fd from epoll set
                 g_connection_queue.take();
-                LOG(DEBUG3) << "active connection queue decrease to " << g_connection_queue.size();
+                LOG(DEBUG3) << "active connection queue decrease to " << 
+                    g_connection_queue.getSize();
             }
             else {
                 LOG(DEBUG3) << "Receive unhandlable event";
@@ -138,10 +141,17 @@ int init( )
     if (!conf_map[CONF_DOWNLOAD_DIR].empty()) {
         g_download_dir = conf_map[CONF_DOWNLOAD_DIR];
     }
-    int tmp_count = atoi(conf_map[CONF_TARGET_DNLDCOUNT].c_str());
-    if (tmp_count != 0) {
-        g_target_dnldcount = tmp_count;
+    int tmp_value = 0;
+    if ((tmp_value = atoi(conf_map[CONF_TARGET_DNLDCOUNT].c_str())) != 0) {
+        g_target_dnldcount = tmp_value;
     }
+    if ((tmp_value = atoi(conf_map[CONF_URLTASK_POOLSIZE].c_str())) != 0) {
+        g_urltask_pool.increaseSizeTo(tmp_value);
+    }
+    if ((tmp_value = atoi(conf_map[CONF_RESPTASK_POOLSIZE].c_str())) != 0) {
+        g_resptask_pool.increaseSizeTo(tmp_value);
+    }
+    g_urltask_pool.setPriority(LOW_PRIORITY);
 
     // init other resources
     logs::Logger::init(
@@ -161,7 +171,7 @@ int destroy( )
 {
     LOGnPRINT(INFO) << "Main destroying...";
     g_urltask_pool.destroy();
-    g_responsetask_pool.destroy();
+    g_resptask_pool.destroy();
     crawl::destroy();
     pthread_mutex_destroy(&g_target_mutex);
     LOGnPRINT(INFO) << "Main destroyed.";
@@ -190,6 +200,13 @@ void handleUrl(void * arg )
     }
 
     char * req_msg = http::setRequest(url.getHost(), url.getPath());
+    if (nullptr == req_msg) {
+        LOG(WARNING) << "request header is too long";
+        close(sockfd);
+        return;
+    }
+
+    // fdinfo object created here
     struct transport::FdInfo * fdinfo = 
             (struct transport::FdInfo *)calloc(1, sizeof(struct transport::FdInfo));
     fdinfo->fd = sockfd;
@@ -198,7 +215,7 @@ void handleUrl(void * arg )
 
     int ret = transport::send(fdinfo);
 
-    // handle sending result
+    // if sending fails then return, else reuse fdinfo for coming response
     if  (-1 == ret) {
         LOG(WARNING) << "send request failed. reason " << strerror(errno);
         transport::freeFdInfo(fdinfo);
@@ -214,7 +231,8 @@ void handleUrl(void * arg )
         epoll_ctl(transport::getEpollfd(), EPOLL_CTL_ADD, sockfd, &ev);
 
         g_connection_queue.put('0');
-        LOG(DEBUG3) << "active connection queue increase to " << g_connection_queue.size();
+        LOG(DEBUG3) << "active connection queue increase to " << 
+            g_connection_queue.getSize();
     }
 }
 
@@ -240,7 +258,8 @@ void handleResponse(void * arg )
     if (g_current_dnldcount >= g_target_dnldcount) {
         g_target_done = true;
     }
-    else if (0 == crawl::downloadText(url.getStr(), resp.getBody(), g_current_dnldcount)) {
+    else if (0 == crawl::downloadText(
+                    url.getStr(), resp.getBody(), g_current_dnldcount)) {
         g_current_dnldcount++;
         LOGnPRINT(INFO) << "current download count: " << g_current_dnldcount;
         if (g_current_dnldcount >= g_target_dnldcount) {
@@ -261,7 +280,8 @@ void handleResponse(void * arg )
     }
     
     int valid_links = crawl::processLink(url, link_tbl);
-    LOG(INFO) << "crawler filtered out " << total_links - valid_links << " links";
+    LOG(INFO) << "crawler filtered out " << total_links - valid_links << 
+        " links";
 
     std::list<std::string>::iterator it = link_tbl.begin();
     for ( ; it != link_tbl.end(); it++) {
@@ -275,7 +295,7 @@ void * urlDaemon(void * arg)
     struct rlimit limit;
     int nofile = DEFAULT_NOFILE;
     if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
-        LOG(WARNING) << "Failed to get RLIMIT_NOFILE. Set nofile to default value";
+        LOG(WARNING) << "Failed to get RLIMIT_NOFILE. Set to default value";
     }
     else {
         nofile = limit.rlim_cur;
@@ -284,7 +304,7 @@ void * urlDaemon(void * arg)
     LOG(INFO) << "set fd limit to " << fd_limit;
     int max_active_connection = 
             (g_target_dnldcount < fd_limit) ? g_target_dnldcount : fd_limit;
-    g_connection_queue.capacity(max_active_connection);
+    g_connection_queue.setCapacity(max_active_connection);
 
     // initially take a reasonable number of url from url queue to urltask pool
     for (int i = 0; i < max_active_connection; i++) {
@@ -293,17 +313,19 @@ void * urlDaemon(void * arg)
         g_urltask_pool.addTask(task);
     }
 
-    // monitor the number of active connections and supply urls to urltask pool if needed
+    // monitor the number of active connections and supply urls to urltask pool
+    //  if needed
     while (g_target_done != true) {
         sleep(5);
-        int available_connection_num = max_active_connection - g_connection_queue.size();
+        int available_connection_num = 
+                max_active_connection - g_connection_queue.getSize();
         int remaining_target = g_target_dnldcount - g_current_dnldcount;
         int n = (available_connection_num < remaining_target) ? 
                     available_connection_num : remaining_target;
         for(int i = 0; i < n; i++) {
             const char * urlstr = strdup((g_url_queue.take()).c_str());
             thread::Task * task = new thread::Task(handleUrl, (void *)urlstr);
-            g_urltask_pool.addTask(task); // take n url from queue to urltask pool
+            g_urltask_pool.addTask(task); // take n url to urltask pool
         }
     }
 }

@@ -146,12 +146,11 @@ int recv (struct FdInfo * fdinfo )
     }
 
     if (nullptr == fdinfo->buff) {
-        fdinfo->buff = (char *)malloc(DEFAULT_BUFF_CAPACITY);
+        fdinfo->buff = (char *)calloc(DEFAULT_BUFF_CAPACITY, sizeof(char));
         fdinfo->buff_capacity = DEFAULT_BUFF_CAPACITY;
         fdinfo->buff_offset = 0;
     }
 
-    LOG(DEBUG1) << "read fd " << fdinfo->fd;
     int n = -1;
     int offset = fdinfo->buff_offset;
 
@@ -159,13 +158,15 @@ int recv (struct FdInfo * fdinfo )
         if (n > 0) {
             offset += n;
             if (offset + RECV_SIZE >= MAX_RECV_SIZE) {
-                LOG(DEBUG1) << "recv exceeds max allowed size" << MAX_RECV_SIZE;
+                LOG(WARNING) << "read from fd " << fdinfo->fd << 
+                    "failed due to recv exceeds max allowed size" << MAX_RECV_SIZE;
                 return -1;
             }
             else if (offset + RECV_SIZE >= fdinfo->buff_capacity) {
                 fdinfo->buff_capacity *= 2;
                 char * tmp = (char *)realloc(fdinfo->buff, fdinfo->buff_capacity);
                 if (nullptr == tmp) {
+                    LOG(WARNING) << "read from fd " << fdinfo->fd << " failed due to realloc failed";
                     return -1;
                 }
                 fdinfo->buff = tmp;
@@ -178,13 +179,14 @@ int recv (struct FdInfo * fdinfo )
             return -1;
         }
         else {
-            LOG(DEBUG1) << "read from fd " << fdinfo->fd << " failed. errno " << errno;
+            LOG(WARNING) << "read from fd " << fdinfo->fd << " failed. errno " << errno;
             return -1;
         }
     }
 
     // if close fd at this point, the released fd maybe reused and then 
-    //  in epoll_ctl(EPOLL_CTL_DEL, fd) has issue
+    //  epoll_ctl(EPOLL_CTL_DEL, fd) will have problem
+    fdinfo->buff[offset] = '\0';
 	return offset;
 }
 

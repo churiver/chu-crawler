@@ -31,7 +31,7 @@ BlockingQueue<T>::BlockingQueue (size_t capacity )
 
 
 template <class T>
-BlockingQueue<T>::BlockingQueue (const BlockingQueue & rhs)
+BlockingQueue<T>::BlockingQueue (const BlockingQueue & rhs )
     : _capacity(rhs._capacity), _container(rhs._container)
 {
     pthread_mutex_init(&_mutex_queue, NULL);
@@ -100,35 +100,35 @@ T BlockingQueue<T>::take ( )
 
 
 template <class T>
-size_t BlockingQueue<T>::size ( )
+size_t BlockingQueue<T>::getSize ( )
 {
     return _container.size();
 }
 
 
 template <class T>
-size_t BlockingQueue<T>::capacity ( )
+size_t BlockingQueue<T>::getCapacity ( )
 {
     return _capacity;
 }
 
 
 template <class T>
-void BlockingQueue<T>::capacity (size_t value )
+void BlockingQueue<T>::setCapacity (size_t value )
 {
     _capacity = value;
 }
 
 
 template <class T>
-bool BlockingQueue<T>::empty ( )
+bool BlockingQueue<T>::isEmpty ( )
 {
     return _container.empty();
 }
 
 
 template <class T>
-bool BlockingQueue<T>::full ( )
+bool BlockingQueue<T>::isFull ( )
 {
     return (_container.size() >= _capacity);
 }

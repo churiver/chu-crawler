@@ -179,7 +179,7 @@ int processLink (http::Url & url, std::list<std::string> & link_tbl )
 int downloadText (const std::string & url, const std::string & content, int dnldcount )
 {
     std::string filename = http::urlToFileName(url);
-    std::ofstream ofs_file (g_download_dir + "/" + std::to_string(dnldcount+1));// + "-" + filename);
+    std::ofstream ofs_file (g_download_dir + "/" + std::to_string(dnldcount+1) + "-" + filename);
     //LOGnPRINT(INFO) << filename << " is_open = " << ofs_file.is_open() 
     //        << ", rdstate = " << ofs_file.rdstate() << ", eof = " << ofs_file.eof()
     //        << ", fail = " << ofs_file.fail() << ", bad = " << ofs_file.bad();

@@ -56,7 +56,7 @@ Logger::~Logger ( )
 }
 
 
-void Logger::init(std::string logfile, std::string min_level, int low_watermark)
+void Logger::init(std::string & logfile, const std::string & min_level, int low_watermark)
 {
     // set log file
     if (logfile.empty() || ("" == logfile)) {

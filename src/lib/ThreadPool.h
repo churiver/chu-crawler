@@ -11,7 +11,8 @@
 
 #include "BlockingQueue.h"
 
-#include <vector>
+//#include <vector>
+#include <list>
 
 namespace thread {
 
@@ -35,25 +36,31 @@ private:
 
 #define DEFAULT_THREAD_POOL_SIZE 5
 #define DEFAULT_THREAD_PRIORITY 0
+#define QUEUE_CAPACITY 1024*10
 
 class ThreadPool
 {
 public:
-    ThreadPool (size_t pool_size = DEFAULT_THREAD_POOL_SIZE, 
-                size_t que_capacity = DEFAULT_QUEUE_CAPACITY,
+    ThreadPool (size_t pool_size = DEFAULT_THREAD_POOL_SIZE,
                 int priority = DEFAULT_THREAD_PRIORITY);
 
     ~ThreadPool ( );
 
+    void increaseSizeTo (size_t );
+
+    void setPriority (int );
+
     int destroy ( );
 
-    bool addTask (Task * );
+    void addTask (Task * );
 
 private:
+    void createThreads (size_t );
+
     static void * executeThread (void * );
 
     BlockingQueue<Task *> _task_queue;
-    std::vector<pthread_t> _thread_list;
+    std::list<pthread_t> _thread_list;
     size_t _poolid;
     int _priority;
 };

@@ -41,16 +41,18 @@ void Task::run ( )
 }
 
 
-ThreadPool::ThreadPool (size_t pool_size, size_t que_capacity, int priority )
-    : _task_queue(que_capacity), _priority(priority)
+ThreadPool::ThreadPool (size_t pool_size, int priority )
+    : _task_queue(QUEUE_CAPACITY), _priority(priority)
 {
     static size_t s_next_poolid = 0;
     _poolid = s_next_poolid++;
 
+    createThreads(pool_size);
+/*
     int thread_count = 0;
     pthread_t tid;
 
-    for ( int i = 0; i < pool_size; i++) {
+    for (int i = 0; i < pool_size; i++) {
         int ret = pthread_create(&tid, nullptr, ThreadPool::executeThread, (void *)this );
         if (ret != 0) {
             fprintf(stderr, "pool creating pthread failed\n");
@@ -62,7 +64,7 @@ ThreadPool::ThreadPool (size_t pool_size, size_t que_capacity, int priority )
 
 //    fprintf(stderr, "pool %d. created %d pthreads\n", _poolid, thread_count);
     if (0 == thread_count)
-        throw;
+        throw;*/
 }
 
 
@@ -70,13 +72,28 @@ ThreadPool::~ThreadPool ( )
 { }
 
 
+void ThreadPool::increaseSizeTo (size_t new_size )
+{
+    size_t current_size = _thread_list.size();
+
+    if (current_size < new_size) {
+        createThreads(new_size - current_size);
+    }
+}
+
+
+void ThreadPool::setPriority (int priority )
+{
+    _priority = priority;
+}
+
+
 int ThreadPool::destroy ( )
 {
-//    fprintf(stderr, "Pool %d destroying...\n", _poolid); // DEBUG
     _task_queue.clear();
     _task_queue.interrupt();
 
-    std::vector<pthread_t>::iterator it = _thread_list.begin();
+    std::list<pthread_t>::iterator it = _thread_list.begin();
     for (it; it != _thread_list.end(); it++) {
         int ret = pthread_join(*it, nullptr);
         if (ret != 0) {
@@ -86,9 +103,31 @@ int ThreadPool::destroy ( )
 }
 
 
-bool ThreadPool::addTask (Task * task )
+void ThreadPool::addTask (Task * task )
 {
     _task_queue.put(task);
+}
+
+
+void ThreadPool::createThreads (size_t thread_num )
+{
+    int thread_count = 0;
+    pthread_t tid;
+
+    for (int i = 0; i < thread_num; i++) {
+        int ret = pthread_create(&tid, nullptr, ThreadPool::executeThread, (void *)this );
+        if (ret != 0) {
+            fprintf(stderr, "pool creating pthread failed\n");
+            continue;
+        }
+        thread_count++;
+        _thread_list.push_back(tid);
+    }
+
+//    fprintf(stderr, "pool %d. created %d pthreads\n", _poolid, thread_count);
+    if (0 == thread_count) {
+        throw;
+    }
 }
 
 
@@ -98,7 +137,6 @@ void * ThreadPool::executeThread (void * arg )
     
     if (self->_priority != 0) {
         int ret = setpriority(PRIO_PROCESS, gettid(), self->_priority);
-        fprintf(stderr, "set tid %d to priority of %d\n", gettid(), getpriority(PRIO_PROCESS, gettid()));
     }
 
     while (true) {

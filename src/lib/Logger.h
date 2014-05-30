@@ -32,7 +32,7 @@ public:
 
     ~Logger ( );
 
-    static void init(std::string, std::string, int );
+    static void init(std::string &, const std::string &, int );
 
     static void destroy( );
 

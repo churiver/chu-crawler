@@ -1,3 +1,21 @@
+Version 0.9.9 - May 29th, 2014
+==============================
+Update
+- Collect task pools size information from config file.
+
+Fix
+- Correct the receive behavior to end recv buffer promptly -- Without the trailing '\0' in recv buffer once reading done, downloading part may take extra bytes after the last character in response.
+
+
+Version 0.9.8 - May 18th, 2014
+==============================
+Update
+- Redesign pending urls connection mechanism to prevent file descriptor being used up.
+- Naming download files with serial prefix.
+
+Fix
+- Fix crashes caused by some corner cases in url and response handling.
+
 
 Version 0.9.7 - May 5th, 2014
 ==============================

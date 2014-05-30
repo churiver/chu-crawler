@@ -77,10 +77,15 @@ void Response::setHeaders (const char * header_start, int len )
         if (std::string::npos == colon_pos) {
             continue;
         }
-        // a '\n' is in each line except first one, skip it
+        // a '\n' is in each line except first one. we'll skip it
         std::size_t line_start = (header_line[0] == '\n') ? 1 : 0;
-        _header_map[header_line.substr(line_start, colon_pos - line_start)] = 
-            header_line.substr(colon_pos + 2); // skip ": "
+        std::string prop = header_line.substr(line_start, colon_pos - line_start);
+        if (header_line.size() - colon_pos < 2) { // e.g. \nX-Powered-By:  (no value)
+            _header_map[prop] = "";
+        }
+        else {
+            _header_map[prop] = header_line.substr(colon_pos + 2); // skip ": "
+        }
     }
 }
 
