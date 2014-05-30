@@ -29,7 +29,7 @@ You are all set!
 Future Features
 ===================
 1. Customized configuration file.  DONE!  
-2. Multiple crawlers via multiple threads or epoll.  
+2. Multiple crawlers via multiple threads or epoll. DONE!  
 3. Handle case of URL redirecting.  
 4. Follow rules in robot.txt.  
 5. And more...  
