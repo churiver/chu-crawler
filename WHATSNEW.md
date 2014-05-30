@@ -2,6 +2,7 @@ Version 0.9.9 - May 29th, 2014
 ==============================
 Update
 - Collect task pools size information from config file.
+- Test with download target number set to 6,000 on several seed urls.
 
 Fix
 - Correct the receive behavior to end recv buffer promptly -- Without the trailing '\0' in recv buffer once reading done, downloading part may take extra bytes after the last character in response.
