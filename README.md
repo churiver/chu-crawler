@@ -5,7 +5,7 @@ chu-crawler is a simple web crawler. Currently it supports:
 2. Identify ineligible links (not html) and skip.  
 3. Download the web page being crawled into local disk.  
 4. Customized configuration file.  
-5. Multiple crawlers via multiple threads or epoll.  
+5. Multiple crawlers via multiple threads and epoll.  
 
 Environment
 ==================
