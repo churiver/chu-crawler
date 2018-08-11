@@ -10,7 +10,7 @@ TARGET = chu-crawl
 $(TARGET):
 	cd ./src/lib && make
 	cd ./src && make
-	g++ -g -lpthread -std=c++0x ./src/lib/*.o ./src/*.o -o $(TARGET)
+	g++ -g -pthread -std=c++0x ./src/lib/*.o ./src/*.o -o $(TARGET)
 
 .PHONY: clean
 clean:

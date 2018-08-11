@@ -1,3 +1,13 @@
+Version 0.9.10 - Aug 10th, 2018
+==============================
+Update
+- Craete download dir in init() to avoid manually creating it before launch the program.
+
+Fix
+- Correct the g++ parameter in Makefile to be able to compile correctly in machine without lpthread lib.
+Thanks to James Read who reported this issue.
+
+
 Version 0.9.9 - May 29th, 2014
 ==============================
 Update

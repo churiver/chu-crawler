@@ -140,6 +140,11 @@ int init( )
 
     if (!conf_map[CONF_DOWNLOAD_DIR].empty()) {
         g_download_dir = conf_map[CONF_DOWNLOAD_DIR];
+	const int cmd_ret = system(("mkdir -p " + g_download_dir).c_str());
+	if (cmd_ret != 0) {
+            std::cerr << "Cannot create download dir " << g_download_dir;
+            return -1;
+        }
     }
     int tmp_value = 0;
     if ((tmp_value = atoi(conf_map[CONF_TARGET_DNLDCOUNT].c_str())) != 0) {
