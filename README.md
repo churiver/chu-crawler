@@ -13,6 +13,7 @@ Environment
 ==================
 chu-crawler has been tested on:  
 CrunchBang (Linux Kernel 3.2.0).  
+Ubuntu 16.04 (Linux Kernel 4.4.0).
 
 
 How To Run It 
@@ -36,8 +37,9 @@ Future Features
 2. Follow rules in robot.txt.  
 3. And more...  
 
+
 Contact
 ===================
 Feel free to contact me for any question or report on bug.  
 Suggestions are welcome.  
-E-mail: churiver86 at gmail.com  
+E-mail: lyu_geek at outlook.com
